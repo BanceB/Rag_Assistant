@@ -24,8 +24,10 @@ from dotenv import load_dotenv
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SETTINGS_PATH = PROJECT_ROOT / "config" / "settings.yaml"
 
-# Clés API indispensables au fonctionnement de l'agent.
-SECRETS_REQUIS = ("ANTHROPIC_API_KEY", "VOYAGE_API_KEY", "PINECONE_API_KEY", "INDEX_NAME")
+# Clés API indispensables, quelle que soit la base vectorielle.
+SECRETS_COMMUNS = ("ANTHROPIC_API_KEY", "VOYAGE_API_KEY")
+# Clés supplémentaires selon la base vectorielle choisie.
+SECRETS_PAR_BASE = {"chroma": (), "pinecone": ("PINECONE_API_KEY", "INDEX_NAME")}
 
 
 @dataclass(frozen=True)
@@ -45,8 +47,9 @@ class EmbeddingsSettings:
 
 @dataclass(frozen=True)
 class VectorStoreSettings:
-    provider: str
-    index_name: str | None
+    provider: str  # "chroma" ou "pinecone"
+    persist_directory: Path  # utilisé par Chroma
+    index_name: str | None  # utilisé par Pinecone (lu dans .env)
 
 
 @dataclass(frozen=True)
@@ -101,8 +104,8 @@ def _valider(s: Settings) -> None:
         raise ValueError("llm.temperature doit être comprise entre 0 et 1")
     if s.retrieval.k > s.retrieval.fetch_k:
         raise ValueError("retrieval.k ne peut pas dépasser retrieval.fetch_k")
-    if s.vectorstore.provider not in ("pinecone", "chroma"):
-        raise ValueError("vectorstore.provider doit valoir 'pinecone' ou 'chroma'")
+    if s.vectorstore.provider not in SECRETS_PAR_BASE:
+        raise ValueError("vectorstore.provider doit valoir 'chroma' ou 'pinecone'")
 
 
 def load_settings(path: Path = SETTINGS_PATH) -> Settings:
@@ -117,6 +120,7 @@ def load_settings(path: Path = SETTINGS_PATH) -> Settings:
         embeddings=EmbeddingsSettings(**brut["embeddings"]),
         vectorstore=VectorStoreSettings(
             provider=brut["vectorstore"]["provider"],
+            persist_directory=PROJECT_ROOT / brut["vectorstore"]["persist_directory"],
             index_name=os.getenv("INDEX_NAME"),
         ),
         chunking=ChunkingSettings(**brut["chunking"]),
@@ -134,10 +138,11 @@ def get_settings() -> Settings:
     return load_settings()
 
 
-def secrets_manquants() -> list[str]:
+def secrets_manquants(settings: Settings | None = None) -> list[str]:
     """Liste les clés API absentes du .env (vide si tout est prêt)."""
-    load_dotenv(PROJECT_ROOT / ".env")
-    return [nom for nom in SECRETS_REQUIS if not os.getenv(nom)]
+    settings = settings or get_settings()
+    requis = SECRETS_COMMUNS + SECRETS_PAR_BASE[settings.vectorstore.provider]
+    return [nom for nom in requis if not os.getenv(nom)]
 
 
 if __name__ == "__main__":
@@ -148,5 +153,5 @@ if __name__ == "__main__":
         f"LLM : {s.llm.model} | embeddings : {s.embeddings.model} | base : {s.vectorstore.provider}"
     )
     print(f"Chunks : {s.chunking.chunk_size}/{s.chunking.chunk_overlap} | k = {s.retrieval.k}")
-    manquants = secrets_manquants()
+    manquants = secrets_manquants(s)
     print("Clés API : toutes présentes" if not manquants else f"Clés API manquantes : {manquants}")

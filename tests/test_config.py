@@ -28,6 +28,13 @@ def test_chevauchement_trop_grand_refuse():
         _valider(mauvais)
 
 
+def test_base_vectorielle_inconnue_refusee():
+    s = load_settings()
+    mauvais = replace(s, vectorstore=replace(s.vectorstore, provider="milvus"))
+    with pytest.raises(ValueError):
+        _valider(mauvais)
+
+
 def test_temperature_hors_bornes_refusee():
     s = load_settings()
     mauvais = replace(s, llm=replace(s.llm, temperature=1.5))

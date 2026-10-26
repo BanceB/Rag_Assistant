@@ -8,18 +8,19 @@ filiere: cacao
 
 llm:
   provider: anthropic
-  model: claude-sonnet-5-5        # rédige les réponses
+  model: claude-sonnet-5-5        # décision D2 : rédige les réponses
   model_rapide: claude-haiku-5-5  # reformule les questions de suivi (étape 8)
   temperature: 0.2                # bas = réponses factuelles et stables
   max_tokens: 1024
 
 embeddings:
   provider: voyageai
-  model: voyage-4-lite            # décision D3 de docs/specs_techniques.md, à valider
+  model: voyage-4                 # décision D3 : multilingue annoncé par l'éditeur
 
 vectorstore:
-  provider: pinecone              # décision D4 : pinecone ou chroma, à valider
-  # Le nom de l'index Pinecone est lu dans la variable INDEX_NAME du fichier .env
+  provider: chroma                # décision D4 : base locale (souveraineté, coût nul)
+  persist_directory: data/chroma  # dossier où Chroma enregistre ses fichiers (ignoré par Git)
+  # Pour revenir à Pinecone : provider: pinecone, et INDEX_NAME + PINECONE_API_KEY dans .env
 
 chunking:
   chunk_size: 2000                # en caractères (environ 500 tokens)
