@@ -17,6 +17,7 @@ dependencies = [
     "langchain-voyageai>=0.4.1",
     "langsmith>=0.14.11",
     "python-dotenv>=1.2.4",
+    "pyyaml>=6.0.3",
     "streamlit>=1.66.0",
 ]
 
@@ -26,6 +27,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "pytest>=9.1.1",
     "ruff>=0.17.2",
 ]
 
@@ -38,3 +40,6 @@ target-version = "py311"
 select = ["E", "F", "I"]
 # Longueur des lignes : gérée par `ruff format` (les longs commentaires restent tolérés)
 ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

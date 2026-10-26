@@ -1,0 +1,41 @@
+# Réglages de l'agent RAG.
+# Tout ce qui peut changer d'une expérience à l'autre vit ici, pas dans le code.
+# Les secrets (clés API) restent dans .env, jamais dans ce fichier.
+
+# Filière traitée. Sert aussi de namespace dans la base vectorielle :
+# une autre filière (café, karité...) = un autre namespace, sans toucher au code.
+filiere: cacao
+
+llm:
+  provider: anthropic
+  model: claude-sonnet-5-5        # rédige les réponses
+  model_rapide: claude-haiku-5-5  # reformule les questions de suivi (étape 8)
+  temperature: 0.2                # bas = réponses factuelles et stables
+  max_tokens: 1024
+
+embeddings:
+  provider: voyageai
+  model: voyage-4-lite            # décision D3 de docs/specs_techniques.md, à valider
+
+vectorstore:
+  provider: pinecone              # décision D4 : pinecone ou chroma, à valider
+  # Le nom de l'index Pinecone est lu dans la variable INDEX_NAME du fichier .env
+
+chunking:
+  chunk_size: 2000                # en caractères (environ 500 tokens)
+  chunk_overlap: 200
+
+retrieval:
+  k: 4                            # passages donnés au LLM
+  fetch_k: 20                     # candidats récupérés avant reranking
+  seuil_score: null               # fixé à l'étape 6, à partir des mesures
+
+memoire:
+  fenetre_messages: 6
+
+chemins:
+  corpus: data/corpus
+  catalogue: data/corpus_catalogue.csv
+  base_sqlite: data/app.db
+  logs: logs
+  questions_eval: eval/questions.jsonl

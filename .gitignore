@@ -12,6 +12,7 @@ wheels/
 # Secrets : ne jamais versionner
 .env
 
+
 # Données générées par l'application
 data/app.db
 logs/
