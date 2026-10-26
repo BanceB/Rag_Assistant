@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Environnement virtuel
+.venv
+
+# Secrets : ne jamais versionner
+.env
+
+# Données générées par l'application
+data/app.db
+logs/
+
+# Caches des outils
+.ruff_cache/
+.pytest_cache/
+
+# Fichiers système
+Thumbs.db
+.DS_Store
