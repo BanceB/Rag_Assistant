@@ -12,7 +12,67 @@ Deux circuits, qui partagent le même modèle d'embedding :
 
 Tous les réglages sont centralisés dans `config/settings.yaml` ; les secrets dans `.env`.
 
-## 2. Décisions
+## 2. Périmètre fonctionnel
+
+> **À valider avec le directeur de mémoire** (jalon « fin de cadrage » ; priorisation demandée au §6 du cahier des charges).
+
+**Mission.** L'agent répond en français, par écrit, aux acteurs de la filière cacao (agriculteurs, coopératives, techniciens, certificateurs), sur cinq thèmes : maladies et ravageurs, EUDR, certification, bonnes pratiques agricoles, indicateurs de durabilité. Chaque réponse s'appuie uniquement sur le corpus documentaire validé.
+
+### 2.1 Types de demandes traitées
+
+| Type (`type_demande`) | Exemple | Comportement attendu |
+| --- | --- | --- |
+| `expliquer` | « C'est quoi la diligence raisonnable ? » | Définition simple, avec un exemple concret |
+| `reconnaitre` | « Mes feuilles ont des bandes rouges le long des nervures » | Causes possibles d'après les fiches ; conseil de faire confirmer par un technicien ; jamais de diagnostic définitif |
+| `guider` | « Comment faire du compost avec les cabosses ? » | Étapes numérotées |
+| `lister` | « Quels documents pour être certifié ? » | Liste claire ; date de la source quand la règle évolue |
+| `comparer` | « ARS 1000 ou Rainforest Alliance ? » | Différences essentielles en quelques points |
+| `interpreter` | « Mon score biodiversité est faible » | Ce que mesure l'indicateur et ce qui peut l'améliorer |
+| `poursuivre` | « Et pour une parcelle de 6 hectares ? » | Question comprise grâce à l'historique de la conversation |
+
+### 2.2 Contrat de réponse
+
+Chaque réponse est :
+
+- **ancrée** : aucune information extérieure au corpus ;
+- **sourcée** : liste des sources en fin de réponse (titre, page, lien) ;
+- **simple** : phrases courtes, mots courants, termes techniques expliqués ;
+- **courte** : quelques phrases, plus des étapes si nécessaire (lecture sur téléphone, bas débit) ;
+- **prudente** : avertissement de non-substitution sur les sujets sensibles (pesticides, conformité, certification) ;
+- **transparente** : l'utilisateur est informé qu'il échange avec une IA.
+
+### 2.3 Situations particulières (`situation`)
+
+| Situation | Exemple | Comportement attendu |
+| --- | --- | --- |
+| `hors_sujet` | « Qui a gagné la CAN ? » | Refus poli et rappel de ce que l'agent sait faire |
+| `absent_du_corpus` | « Combien coûte un audit Rainforest Alliance ? » | « Je n'ai pas cette information dans mes documents », puis orientation (technicien, ANADER, coopérative) |
+| `demande_de_decision` | « Mon cacao est-il conforme à l'EUDR ? » | Explication des critères, sans verdict, et orientation vers l'organisme compétent |
+
+### 2.4 Hors périmètre
+
+- Diagnostic à partir de photos (module dédié de COCOACERT).
+- Décision de conformité ou de certification.
+- Dosage de pesticides au-delà des fiches officielles (et toujours avec avertissement).
+- Prévisions : prix, météo, récoltes.
+- Accès aux données personnelles de l'exploitation (passeport numérique) : perspective d'intégration.
+- Langues locales : perspective.
+- Actions à la place de l'utilisateur (remplir une déclaration, par exemple).
+
+### 2.5 Priorités (MoSCoW)
+
+| Priorité | Fonctions |
+| --- | --- |
+| **Indispensable** (Must) | F1 interface web, F2 recherche, F3 génération, F4 sources, F5 garde-fous, F6 mémoire de conversation, F9 journalisation (nécessaire pour mesurer les indicateurs du §11) |
+| **Important** (Should) | F7 administration du corpus, F8 cache et mode dégradé, reranking, réponses en streaming |
+| **Bonus** (Could) | Canal WhatsApp (§4.1), suggestions de questions, filtre par thème |
+| **Pas cette fois** (Won't) | Diagnostic par image, langues locales, connexion aux données réelles de COCOACERT, déploiement à grande échelle |
+
+### 2.6 Vérification
+
+Le jeu `eval/questions.jsonl` (56 questions) contient chaque type de demande, chaque situation particulière et chaque thème. Le test `tests/test_questions.py` vérifie automatiquement cette couverture. Les cibles chiffrées sont celles du §11 : au moins 90 % de réponses sourcées, au moins 90 % des questions hors corpus détectées, 5 s maximum, au moins 80 % de pertinence perçue.
+
+## 3. Décisions
 
 ### D1. Chaîne RAG plutôt qu'agent — **décidé**
 
@@ -72,7 +132,7 @@ Ordre de grandeur : 100 documents d'environ 20 pages font à peu près 1,2 milli
 
 Streamlit : Python uniquement, composants de chat natifs, application multipage pour l'administration, léger côté navigateur.
 
-## 3. Sources
+## 4. Sources
 
 - Tarifs Claude : <https://platform.claude.com/docs/en/about-claude/pricing>
 - Tarifs Voyage AI : <https://docs.voyageai.com/docs/pricing>

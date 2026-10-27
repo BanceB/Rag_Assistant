@@ -13,7 +13,7 @@
 
 ## 2. Le catalogue
 
-Fichier CSV séparé par des **points-virgules**, encodé en UTF-8 : il s'ouvre directement dans Excel en français.
+Fichier CSV standard : séparé par des **virgules**, encodé en UTF-8. Il s'ouvre dans Data Wrangler (VS Code), pandas ou LibreOffice. Dans Excel : *Données > À partir d'un fichier texte/CSV*, délimiteur « virgule ». Un champ qui contient une virgule est entouré de guillemets.
 
 | Colonne | Contenu | Valeurs possibles |
 | --- | --- | --- |
@@ -56,40 +56,33 @@ Conséquence pour le corpus : tout document qui annonce une application en déce
 
 ## 6. Sources candidates
 
-Liste de départ, à télécharger, vérifier et cataloguer. Les liens ont été relevés le 26 octobre 2026.
+Les 39 sources retenues pour l'instant sont **déjà inscrites dans le catalogue**, au statut `a_verifier`, avec leur lien et le nom de fichier prévu. Pour chacune : télécharger depuis `url_source`, enregistrer sous le nom indiqué dans `fichier`, vérifier, puis passer le statut à `valide`. Le vérificateur liste les fichiers encore à télécharger.
 
-| doc_id proposé | Document | Type | Lien |
-| --- | --- | --- | --- |
-| EUDR-001 | Règlement (UE) 2023/1115 (choisir la version FR sur EUR-Lex) | reglement | <https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32023R1115> |
-| EUDR-002 | Règlement (UE) 2025/2650 modifiant le 2023/1115 | reglement | <https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202502650> |
-| EUDR-003 | Page EUDR de la Commission (documents d'orientation, FAQ) | page_web | <https://environment.ec.europa.eu/topics/forests/deforestation/regulation-deforestation-free-products_en> |
-| EUDR-004 | AGRINFO : clarifications EUDR, mai 2026 (FR) | rapport | <https://agrinfo.eu/book-of-reports/eu-deforestation-regulation-eudr-clarifications-may-2026/translate/fr> |
-| EUDR-005 | AGRINFO : EUDR, publications et ressources (FR) | page_web | <https://agrinfo.eu/book-of-reports/eu-deforestation-regulation-publications-and-resources/translate/fr> |
-| EUDR-006 | Commission : report à décembre 2026 et autres évolutions | page_web | <https://trade.ec.europa.eu/access-to-markets/en/news/delay-until-december-2026-and-other-developments-implementation-eudr-regulation> |
-| BPA-001 | FIRCA : Manuel technique de cacaoculture durable, version planteur | guide | <https://firca.ci/dl/manuel-technique-de-cacaoculture-durable-planteur> |
-| BPA-002 | FIRCA : Manuel technique de cacaoculture durable, version technicien | guide | <https://firca.ci/dl/manuel-technique-de-cacaoculture-durable-technicien> |
-| BPA-003 | ICCO : Guide du producteur de cacao (FR) | guide | <https://www.icco.org/wp-content/uploads/B27407-Cocoa-Grower-Guide-French-CFW-v7-interactive.pdf> |
-| BPA-004 | UN-REDD : rapport sur l'agroforesterie en Côte d'Ivoire | rapport | <https://un-redd.org/sites/default/files/2021-10/rapport%20agroforesterie%20c%C3%B4te%20d%27ivoire.pdf> |
-| MAL-001 | PlantVillage (Penn State) : fiche Cacao, maladies et ravageurs (FR) | page_web | <https://plantvillage.psu.edu/topics/cocoa-cacao-fr/infos> |
-| CERT-001 | Rainforest Alliance : norme d'agriculture durable (page des documents) | norme | <https://rainforest-alliance.org/resource-item/rainforest-alliance-sustainable-agriculture-standard> |
-| CERT-002 | Preferred by Nature : fiche sur la certification Rainforest Alliance des exploitations (FR) | fiche_technique | <https://preferredbynature.org/sites/default/files/RA-SAS-farm-certification-fact-sheet-Nov-2021-FRE.pdf> |
-| CERT-003 | World Cocoa Foundation : ARS 1000, trois choses à savoir (EN) | page_web | <https://worldcocoafoundation.org/news-and-resources/article/africa-s-sustainable-cocoa-standard-3-things-to-know-about-ars-1000> |
-| CERT-004 | ICI : manuel du système de suivi et de remédiation du travail des enfants (SSRTE), sept. 2025 (FR) | guide | <https://www.cocoainitiative.org/sites/default/files/resources/clmrs-manual_sept-2025_fr.pdf> |
-| IND-001 | Green Means Go (cahier §16) | page_web | <https://greenmeansgo.ai/> |
-| IND-002 | Food Systems Dashboard (cahier §16) | page_web | <https://www.foodsystemsdashboard.org/> |
-| IND-003 | FCI4Africa Digital Knowledge Hub (cahier §16) | page_web | <https://fci4a.ubuntoo.com/> |
+| Thème | Nombre | Principales sources |
+| --- | --- | --- |
+| maladies | 14 | Fiches techniques du CNRA (Swollen Shoot, pourriture brune, insectes nuisibles, pourridié, maladie rose…) |
+| bonnes_pratiques | 12 | Manuel du planteur du Conseil du Café-Cacao (2015), manuels FIRCA, guide ICCO, guide CABI, fiches CNRA (culture, fertilisation, pépinière, greffage, séchage) |
+| eudr | 6 | Règlements (UE) 2023/1115 et 2025/2650, Commission européenne, AGRINFO |
+| certification | 4 | Rainforest Alliance, Preferred by Nature, World Cocoa Foundation (ARS 1000), ICI (SSRTE) |
+| indicateurs | 3 | Green Means Go, Food Systems Dashboard, Digital Knowledge Hub (cahier §16) |
+
+Fiches du CNRA : liste complète sur <https://cnra.ci/nos-fiches-techniques/?tax%5Bwpdmcategory%5D=cacao>. Le site ne donne pas de lien direct par fiche : on les télécharge depuis cette page.
 
 ### Écartés après examen (exemples de curation)
 
 | Document | Motif |
 | --- | --- |
+| CNRA : échantillonnage de feuilles pour le diagnostic PCR du Swollen Shoot (2025) | Protocole de laboratoire, hors du public visé |
+| CNRA : extraction de l'ADN génomique des feuilles de cacaoyer (2025) | Protocole de laboratoire, hors du public visé |
+| CIRAD : séquences complètes du virus du Swollen Shoot | Article de génétique, trop spécialisé pour vulgariser |
 | Rainforest Alliance, projet de norme v2 (2019) | Version de travail, remplacée par la norme définitive |
-| Oro et al. (2020), biostimulant Banzaï et Swollen Shoot, *Journal of Applied Biosciences* | Étude d'un produit commercial précis, peu utile pour vulgariser |
+| Oro et al. (2020), biostimulant Banzaï et Swollen Shoot | Étude d'un produit commercial précis |
 | Articles de presse sur le Swollen Shoot | Servent à repérer les sources officielles, pas à répondre |
 
-### Manques à combler (avec l'encadrant)
+### Manques à combler
 
-- **Maladies** : fiches officielles du CNRA, de l'ANADER ou du Conseil du Café-Cacao sur le Swollen Shoot, la pourriture brune et les mirides.
-- **Norme ARS 1000** : texte de la norme (vérifier les conditions d'accès auprès de l'organisme de normalisation).
-- **Documents internes COCOACERT** : à demander au directeur de mémoire.
-- **Indicateurs** : guides méthodologiques de Green Means Go et du Food Systems Dashboard.
+- **Documents internes COCOACERT** : non publics, à demander au directeur de mémoire.
+- **Norme ARS 1000** : texte de la norme (vérifier les conditions d'accès).
+- **Indicateurs** : guides méthodologiques de Green Means Go et du Food Systems Dashboard ; c'est le thème le plus faible (3 sources).
+- **Certification** : documents de Fairtrade et du Conseil du Café-Cacao sur la certification et la traçabilité.
+- **Objectif** : 39 sources aujourd'hui, 100 visées. Compter un chapitre de manuel comme une fiche est possible, mais à décider avec ton encadrant et à signaler dans le mémoire.

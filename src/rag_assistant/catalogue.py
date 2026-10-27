@@ -1,8 +1,9 @@
 """Lecture et vérification du catalogue du corpus (data/corpus_catalogue.csv).
 
 Le catalogue décrit chaque document du corpus : une ligne par document.
-Il est au format CSV séparé par des points-virgules et encodé en UTF-8 avec BOM,
-pour s'ouvrir correctement dans Excel en français.
+Format CSV standard : séparé par des virgules, encodé en UTF-8. Il s'ouvre dans
+Data Wrangler (VS Code), pandas ou LibreOffice. Un fichier réenregistré par Excel
+en français (points-virgules) est aussi accepté à la lecture.
 
 Vérifier le catalogue :
     uv run python -m rag_assistant.catalogue
@@ -17,7 +18,7 @@ from pathlib import Path
 
 from rag_assistant.config import get_settings
 
-SEPARATEUR = ";"
+SEPARATEUR = ","  # séparateur utilisé à l'écriture
 OBJECTIF_DOCUMENTS = 100  # cible du cahier des charges (§11)
 
 THEMES = {"maladies", "eudr", "certification", "bonnes_pratiques", "indicateurs"}
@@ -54,10 +55,18 @@ class EntreeCatalogue:
 COLONNES = [f.name for f in fields(EntreeCatalogue)]
 
 
+def detecter_separateur(entete: str) -> str:
+    """Virgule (standard) ou point-virgule (Excel en français), d'après la ligne d'en-tête."""
+    return ";" if entete.count(";") > entete.count(",") else ","
+
+
 def lire_catalogue(chemin: Path) -> list[EntreeCatalogue]:
     """Lit le catalogue et renvoie une entrée par ligne non vide."""
+    # utf-8-sig : accepte aussi un fichier avec BOM, comme ceux qu'écrit Excel
     with open(chemin, encoding="utf-8-sig", newline="") as f:
-        lecteur = csv.DictReader(f, delimiter=SEPARATEUR)
+        separateur = detecter_separateur(f.readline())
+        f.seek(0)
+        lecteur = csv.DictReader(f, delimiter=separateur)
         manquantes = set(COLONNES) - set(lecteur.fieldnames or [])
         if manquantes:
             raise ValueError(f"Colonnes manquantes dans le catalogue : {sorted(manquantes)}")
