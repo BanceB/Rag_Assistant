@@ -33,6 +33,10 @@ TYPES = {
 }
 STATUTS = {"a_verifier", "valide", "exclu"}
 LANGUES = {"fr", "en"}
+# Niveau de consultation de la source avant téléchargement (vide si non renseigné) :
+# contenu_verifie = contenu lu et vérifié ; apercu = page vue, contenu partiel ou illisible ;
+# non_consulte = lien repéré par une recherche, pas encore ouvert.
+CONSULTATIONS = {"contenu_verifie", "apercu", "non_consulte", ""}
 
 
 @dataclass(frozen=True)
@@ -50,9 +54,12 @@ class EntreeCatalogue:
     statut: str
     valide_par: str
     remarques: str
+    consultation: str = ""
 
 
 COLONNES = [f.name for f in fields(EntreeCatalogue)]
+# Colonnes ajoutées après coup : un ancien catalogue qui ne les a pas reste lisible.
+COLONNES_OPTIONNELLES = {"consultation"}
 
 
 def detecter_separateur(entete: str) -> str:
@@ -67,14 +74,14 @@ def lire_catalogue(chemin: Path) -> list[EntreeCatalogue]:
         separateur = detecter_separateur(f.readline())
         f.seek(0)
         lecteur = csv.DictReader(f, delimiter=separateur)
-        manquantes = set(COLONNES) - set(lecteur.fieldnames or [])
+        manquantes = set(COLONNES) - COLONNES_OPTIONNELLES - set(lecteur.fieldnames or [])
         if manquantes:
             raise ValueError(f"Colonnes manquantes dans le catalogue : {sorted(manquantes)}")
         entrees = []
         for ligne in lecteur:
             if not any((v or "").strip() for v in ligne.values()):
                 continue  # ligne vide laissée par Excel
-            entrees.append(EntreeCatalogue(**{c: (ligne[c] or "").strip() for c in COLONNES}))
+            entrees.append(EntreeCatalogue(**{c: (ligne.get(c) or "").strip() for c in COLONNES}))
         return entrees
 
 
@@ -97,6 +104,10 @@ def verifier_catalogue(entrees: list[EntreeCatalogue], dossier_corpus: Path) -> 
             problemes.append(f"{nom} : type « {e.type} » inconnu, attendu {sorted(TYPES)}")
         if e.statut not in STATUTS:
             problemes.append(f"{nom} : statut « {e.statut} » inconnu, attendu {sorted(STATUTS)}")
+        if e.consultation not in CONSULTATIONS:
+            problemes.append(
+                f"{nom} : consultation « {e.consultation} » inconnue, attendu {sorted(CONSULTATIONS)}"
+            )
         if e.langue not in LANGUES:
             problemes.append(f"{nom} : langue « {e.langue} » inconnue, attendu {sorted(LANGUES)}")
         if not e.fichier and not e.url_source:
@@ -130,6 +141,9 @@ def main() -> None:
         n_total = sum(e.theme == theme for e in entrees)
         n_valides = sum(e.theme == theme for e in valides)
         print(f"  {theme:<17} {n_valides:>3} validés sur {n_total}")
+
+    niveaux = Counter(e.consultation or "non renseigné" for e in entrees)
+    print("Consultation des sources : " + ", ".join(f"{k} {v}" for k, v in sorted(niveaux.items())))
 
     problemes = verifier_catalogue(entrees, chemins.corpus)
     orphelins = fichiers_non_catalogues(entrees, chemins.corpus)

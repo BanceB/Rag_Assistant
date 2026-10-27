@@ -32,6 +32,7 @@ def ligne(doc_id="EUDR-001", fichier="eudr/texte.pdf", statut="valide", valide_p
         statut,
         valide_par,
         "",
+        "contenu_verifie",
     ]
 
 
@@ -73,3 +74,31 @@ def test_format_excel_francais_accepte(tmp_path):
     entrees = lire_catalogue(catalogue)
     assert entrees[0].titre == "Titre, avec une virgule"
     assert verifier_catalogue(entrees, corpus) == []
+
+
+def test_ancien_catalogue_sans_colonne_consultation(tmp_path):
+    corpus = tmp_path / "corpus"
+    (corpus / "eudr").mkdir(parents=True)
+    (corpus / "eudr" / "texte.pdf").write_bytes(b"%PDF")
+    catalogue = tmp_path / "catalogue.csv"
+    with open(catalogue, "w", encoding="utf-8", newline="") as f:
+        ecrivain = csv.writer(f)
+        ecrivain.writerow(COLONNES[:-1])
+        ecrivain.writerow(ligne()[:-1])
+
+    entrees = lire_catalogue(catalogue)
+    assert entrees[0].consultation == ""
+    assert verifier_catalogue(entrees, corpus) == []
+
+
+def test_consultation_inconnue_signalee(tmp_path):
+    corpus = tmp_path / "corpus"
+    (corpus / "eudr").mkdir(parents=True)
+    (corpus / "eudr" / "texte.pdf").write_bytes(b"%PDF")
+    catalogue = tmp_path / "catalogue.csv"
+    mauvaise = ligne()
+    mauvaise[-1] = "lu en vitesse"
+    ecrire_catalogue(catalogue, [mauvaise])
+
+    problemes = verifier_catalogue(lire_catalogue(catalogue), corpus)
+    assert any("consultation" in p for p in problemes)

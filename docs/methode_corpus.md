@@ -30,6 +30,7 @@ Fichier CSV standard : séparé par des **virgules**, encodé en UTF-8. Il s'ouv
 | `statut` | Avancement | `a_verifier`, `valide`, `exclu` |
 | `valide_par` | Qui a validé | nom ou fonction |
 | `remarques` | Toute précision utile | texte |
+| `consultation` | Ce qui a été vérifié de la source avant téléchargement | `contenu_verifie` (contenu lu), `apercu` (page vue, contenu partiel ou illisible), `non_consulte` (lien repéré, pas encore ouvert), ou vide |
 
 ## 3. Critères d'inclusion
 
@@ -50,39 +51,61 @@ Un document entre dans le corpus s'il remplit **tous** ces critères :
 
 ## 5. Point de vigilance : les dates de l'EUDR
 
-Le règlement (UE) 2023/1115 a été **reporté et modifié plusieurs fois**, en dernier lieu par le règlement (UE) 2025/2650. Selon la Commission, les principales obligations s'appliquent à partir du 30 décembre 2026 pour les grands et moyens opérateurs, et à partir du 30 juin 2027 pour les micro et petites entreprises (selon les produits).
+Le règlement (UE) 2023/1115 a été **reporté et modifié plusieurs fois**, en dernier lieu par le règlement (UE) 2025/2650 du 19 décembre 2025. Selon la Commission, les principales obligations s'appliquent à partir du 30 décembre 2026 pour les grands et moyens opérateurs, et à partir du 30 juin 2027 pour les micro et petites entreprises (le 30 décembre 2026 pour celles déjà couvertes par l'ancien règlement sur le bois).
 
-Conséquence pour le corpus : tout document qui annonce une application en décembre 2024 ou décembre 2025 est **obsolète sur ce point**. On le marque dans `remarques`, ou on l'exclut s'il n'apporte rien d'autre.
+Points vérifiés dans le texte du règlement 2023/1115 (version française sur EUR-Lex, le 27 octobre 2026) :
+
+- **Article 2, point 13** : « zéro déforestation » vise des produits issus de terres n'ayant pas fait l'objet de déforestation après le **31 décembre 2020**.
+- **Article 2, point 28** : la géolocalisation se fait par coordonnées (au moins six décimales) ; pour les parcelles de **plus de 4 hectares** (hors bovins), elle se fait à l'aide de **polygones**.
+
+Conséquence pour le corpus : tout document qui annonce une application en décembre 2024 ou décembre 2025 est **obsolète sur ce point**. On le marque dans `remarques`, ou on l'exclut s'il n'apporte rien d'autre. Exemple : l'analyse de Trase (EUDR-007) reste utile pour ses chiffres de traçabilité, mais annonce une application au 30 décembre 2024.
 
 ## 6. Sources candidates
 
-Les 39 sources retenues pour l'instant sont **déjà inscrites dans le catalogue**, au statut `a_verifier`, avec leur lien et le nom de fichier prévu. Pour chacune : télécharger depuis `url_source`, enregistrer sous le nom indiqué dans `fichier`, vérifier, puis passer le statut à `valide`. Le vérificateur liste les fichiers encore à télécharger.
+Les 51 sources retenues pour l'instant sont **inscrites dans le catalogue**, au statut `a_verifier`, avec leur lien, le nom de fichier prévu et leur niveau de consultation. Pour chacune : télécharger depuis `url_source`, enregistrer sous le nom indiqué dans `fichier`, vérifier, puis passer le statut à `valide`. Le vérificateur liste les fichiers encore à télécharger.
 
-| Thème | Nombre | Principales sources |
+### 6.1 Répartition (au 27 octobre 2026)
+
+| Thème | Sources | Contenu vérifié | Aperçu | Non consultées |
+| --- | --- | --- | --- | --- |
+| maladies | 15 | 1 | 14 | 0 |
+| bonnes_pratiques | 15 | 5 | 6 | 4 |
+| eudr | 10 | 5 | 1 | 4 |
+| certification | 5 | 0 | 1 | 4 |
+| indicateurs | 6 | 4 | 2 | 0 |
+| **Total** | **51** | **15** | **24** | **12** |
+
+### 6.2 Couverture des sources demandées par le cahier des charges (§3.2)
+
+| Source du cahier | Situation | Ce qu'il faut faire |
 | --- | --- | --- |
-| maladies | 14 | Fiches techniques du CNRA (Swollen Shoot, pourriture brune, insectes nuisibles, pourridié, maladie rose…) |
-| bonnes_pratiques | 12 | Manuel du planteur du Conseil du Café-Cacao (2015), manuels FIRCA, guide ICCO, guide CABI, fiches CNRA (culture, fertilisation, pépinière, greffage, séchage) |
-| eudr | 6 | Règlements (UE) 2023/1115 et 2025/2650, Commission européenne, AGRINFO |
-| certification | 4 | Rainforest Alliance, Preferred by Nature, World Cocoa Foundation (ARS 1000), ICI (SSRTE) |
-| indicateurs | 3 | Green Means Go, Food Systems Dashboard, Digital Knowledge Hub (cahier §16) |
+| Documents COCOACERT | Aucun : documents internes, non publics | Les demander au directeur de mémoire |
+| Digital Knowledge Hub (FCI4Africa) | Site visité, contenu illisible sans navigateur ni compte (IND-003) | Demander un accès au directeur de mémoire |
+| Green Means Go | Site visité (IND-001) : analyse de cycle de vie, indicateurs climat, eau, terres, biodiversité ; Canada, Ghana, Nigeria ; aucun contenu cacao, aucune méthodologie téléchargeable | Demander si un déploiement en Côte d'Ivoire est prévu pour COCOACERT, et le format des rapports |
+| Food Systems Dashboard | Profil Côte d'Ivoire (IND-005), FAQ (IND-006), article de méthode de Herforth et al. 2022 (IND-004) | Télécharger ; l'article fondateur de Fanzo et al. (2020) n'a pas pu être ouvert sur le site |
+| Littérature réglementaire | Règlements 2023/1115 et 2025/2650, pages et fiche de la Commission (EUDR-001 à 003, 006, 008 à 010) | Télécharger les versions françaises |
+| Littérature scientifique | 5 articles en accès libre : Swollen Shoot (MAL-015), ombrage et agroforesterie en Côte d'Ivoire (BPA-013 à 015), indicateurs (IND-004) | Compléter, notamment pour l'état de l'art |
+
+Sources institutionnelles ajoutées en dehors de la liste du cahier, pour leur fiabilité et leur adaptation à la vulgarisation : CNRA, Conseil du Café-Cacao, FIRCA, ICCO, CABI, ICI, Rainforest Alliance, NORC, Trase.
 
 Fiches du CNRA : liste complète sur <https://cnra.ci/nos-fiches-techniques/?tax%5Bwpdmcategory%5D=cacao>. Le site ne donne pas de lien direct par fiche : on les télécharge depuis cette page.
 
-### Écartés après examen (exemples de curation)
+### 6.3 Écartés après examen (exemples de curation)
 
 | Document | Motif |
 | --- | --- |
 | CNRA : échantillonnage de feuilles pour le diagnostic PCR du Swollen Shoot (2025) | Protocole de laboratoire, hors du public visé |
 | CNRA : extraction de l'ADN génomique des feuilles de cacaoyer (2025) | Protocole de laboratoire, hors du public visé |
 | CIRAD : séquences complètes du virus du Swollen Shoot | Article de génétique, trop spécialisé pour vulgariser |
+| Karkour et al. (2021), état de l'analyse de cycle de vie en Afrique | Revue générale, sans lien direct avec le cacao ni avec Green Means Go |
 | Rainforest Alliance, projet de norme v2 (2019) | Version de travail, remplacée par la norme définitive |
 | Oro et al. (2020), biostimulant Banzaï et Swollen Shoot | Étude d'un produit commercial précis |
 | Articles de presse sur le Swollen Shoot | Servent à repérer les sources officielles, pas à répondre |
 
-### Manques à combler
+### 6.4 Manques à combler
 
-- **Documents internes COCOACERT** : non publics, à demander au directeur de mémoire.
+- **Documents internes COCOACERT et accès au Digital Knowledge Hub** : seule source que le directeur de mémoire peut fournir.
 - **Norme ARS 1000** : texte de la norme (vérifier les conditions d'accès).
-- **Indicateurs** : guides méthodologiques de Green Means Go et du Food Systems Dashboard ; c'est le thème le plus faible (3 sources).
-- **Certification** : documents de Fairtrade et du Conseil du Café-Cacao sur la certification et la traçabilité.
-- **Objectif** : 39 sources aujourd'hui, 100 visées. Compter un chapitre de manuel comme une fiche est possible, mais à décider avec ton encadrant et à signaler dans le mémoire.
+- **Certification** : thème le plus faible (5 sources, aucune au contenu vérifié) ; chercher les documents Fairtrade et ceux du Conseil du Café-Cacao sur la traçabilité.
+- **Licences** : les articles des *Cahiers Agricultures* sont sous CC BY-NC (usage non commercial) ; compatible avec un mémoire, à signaler si le prototype devient un service commercial.
+- **Objectif** : 51 sources aujourd'hui, 100 visées. Compter un chapitre de manuel comme une fiche est possible, mais à décider avec ton encadrant et à signaler dans le mémoire.
