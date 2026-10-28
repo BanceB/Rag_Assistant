@@ -12,6 +12,11 @@ wheels/
 # Secrets : ne jamais versionner
 .env
 
+# Documents du corpus : soumis au droit d'auteur (ex. norme ARS 1000, « tous droits réservés »).
+# On versionne le catalogue (titres, liens, licences), pas les fichiers eux-mêmes.
+data/corpus/**/*.pdf
+data/corpus/**/*.docx
+
 # Données générées par l'application
 data/app.db
 data/chroma/

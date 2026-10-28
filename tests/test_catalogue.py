@@ -102,3 +102,12 @@ def test_consultation_inconnue_signalee(tmp_path):
 
     problemes = verifier_catalogue(lire_catalogue(catalogue), corpus)
     assert any("consultation" in p for p in problemes)
+
+
+def test_document_exclu_sans_fichier_accepte(tmp_path):
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    catalogue = tmp_path / "catalogue.csv"
+    ecrire_catalogue(catalogue, [ligne(statut="exclu", fichier="eudr/jamais_telecharge.pdf")])
+
+    assert verifier_catalogue(lire_catalogue(catalogue), corpus) == []

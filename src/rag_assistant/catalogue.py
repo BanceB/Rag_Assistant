@@ -112,7 +112,8 @@ def verifier_catalogue(entrees: list[EntreeCatalogue], dossier_corpus: Path) -> 
             problemes.append(f"{nom} : langue « {e.langue} » inconnue, attendu {sorted(LANGUES)}")
         if not e.fichier and not e.url_source:
             problemes.append(f"{nom} : ni fichier ni url_source")
-        if e.fichier and not (dossier_corpus / e.fichier).is_file():
+        # Un document exclu n'a pas besoin d'être téléchargé : on garde sa ligne pour la trace.
+        if e.fichier and e.statut != "exclu" and not (dossier_corpus / e.fichier).is_file():
             problemes.append(f"{nom} : fichier introuvable : data/corpus/{e.fichier}")
         if e.statut == "valide" and not e.valide_par:
             problemes.append(f"{nom} : statut « valide » sans valide_par")
