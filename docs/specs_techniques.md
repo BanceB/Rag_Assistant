@@ -70,7 +70,7 @@ Chaque réponse est :
 
 ### 2.6 Vérification
 
-Le jeu `eval/questions.jsonl` (56 questions) contient chaque type de demande, chaque situation particulière et chaque thème. Le test `tests/test_questions.py` vérifie automatiquement cette couverture. Les cibles chiffrées sont celles du §11 : au moins 90 % de réponses sourcées, au moins 90 % des questions hors corpus détectées, 5 s maximum, au moins 80 % de pertinence perçue.
+Le jeu `eval/questions.jsonl` contient 200 questions, dont 128 posées par des agriculteurs, 26 par des coopératives, 21 par des techniciens, 15 par des étudiants ou chercheurs et 10 par d'autres parties prenantes. 160 sont des questions normales (dont 12 conversations suivies), 12 des demandes de décision, 14 portent sur une information absente du corpus et 14 sont hors sujet. Chaque question normale porte une réponse attendue et au moins une preuve (document, page, extrait mot pour mot) vérifiée automatiquement dans le texte des PDF ; `doc_ids_attendus` en découle et sert à mesurer le rappel de la recherche. Les questions « absentes » ont été contrôlées par recherche dans tout le corpus PDF. Le jeu a été généré par Claude à partir du corpus et doit être relu par l'étudiant ; les 10 pages web du catalogue, dont le texte n'est pas encore extrait, ne sont pas couvertes. Le test `tests/test_questions.py` vérifie automatiquement la forme, la couverture et la cohérence avec le catalogue. Les cibles chiffrées sont celles du §11 : au moins 90 % de réponses sourcées, au moins 90 % des questions hors corpus détectées, 5 s maximum, au moins 80 % de pertinence perçue.
 
 ## 3. Décisions
 
