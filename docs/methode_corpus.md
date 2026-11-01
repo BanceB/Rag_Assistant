@@ -1,6 +1,6 @@
 # Méthode de constitution du corpus
 
-> Statut : **en cours (étape 2)** : 51 documents validés au 28 octobre 2026. Objectif : au moins 100 documents ou fiches validés (§11 du cahier des charges).
+> Statut : **en cours (étape 2)** : 46 documents validés au 1er novembre 2026. Objectif : au moins 100 documents ou fiches validés (§11 du cahier des charges).
 
 ## 1. Règles de rangement
 
@@ -8,7 +8,7 @@
 - Thèmes : `maladies`, `eudr`, `certification`, `bonnes_pratiques`, `indicateurs`.
 - Identifiant (`doc_id`) : préfixe du thème + numéro à trois chiffres. `MAL-001`, `EUDR-001`, `CERT-001`, `BPA-001`, `IND-001`.
 - Nom de fichier : en minuscules, sans espace ni accent. Exemple : `eudr/reglement_ue_2023_1115.pdf`.
-- Une page web gardée telle quelle : `fichier` vide, `url_source` renseignée, type `page_web`.
+- Une page web : on l'enregistre en PDF daté (Ctrl+P, destination « Enregistrer au format PDF », **pas** « Microsoft Print to PDF », qui supprime le texte) dans `data/corpus/<thème>/`, avec la date de capture dans le nom du fichier et dans `remarques`. Type `page_web`, `url_source` = adresse d'origine. Tant qu'elle n'est pas capturée, `fichier` reste vide et la page n'est pas indexée.
 - Vérification après chaque ajout : `uv run python -m rag_assistant.catalogue`.
 
 ## 2. Le catalogue
@@ -62,7 +62,7 @@ Conséquence pour le corpus : tout document qui annonce une application en déce
 
 ## 6. État du corpus
 
-Le catalogue compte **55 sources : 51 validées, 1 à vérifier, 3 exclues** (au 28 octobre 2026). Tous les PDF téléchargés contiennent du texte sélectionnable : aucun n'a besoin d'OCR.
+Le catalogue compte **55 sources : 46 validées, 1 à vérifier, 8 exclues** (au 1er novembre 2026). Tous les PDF téléchargés contiennent du texte sélectionnable : aucun n'a besoin d'OCR.
 
 ### 6.1 Répartition par thème
 
@@ -70,10 +70,10 @@ Le catalogue compte **55 sources : 51 validées, 1 à vérifier, 3 exclues** (au
 | --- | --- | --- | --- | --- |
 | maladies | 15 | 15 | 0 | 0 |
 | bonnes_pratiques | 15 | 14 | 0 | 1 |
-| eudr | 10 | 9 | 0 | 1 |
+| eudr | 10 | 6 | 0 | 4 |
 | certification | 9 | 8 | 0 | 1 |
-| indicateurs | 6 | 5 | 1 | 0 |
-| **Total** | **55** | **51** | **1** | **3** |
+| indicateurs | 6 | 3 | 1 | 2 |
+| **Total** | **55** | **46** | **1** | **8** |
 
 Seul le Digital Knowledge Hub (IND-003) reste à vérifier : son contenu est inaccessible sans compte.
 
@@ -83,7 +83,7 @@ Seul le Digital Knowledge Hub (IND-003) reste à vérifier : son contenu est ina
 | --- | --- |
 | Documents COCOACERT | Aucun : documents internes, demande envoyée au directeur de mémoire |
 | Digital Knowledge Hub (FCI4Africa) | Inaccessible sans compte (IND-003) ; demande envoyée |
-| Green Means Go | Site consulté (IND-001) : aucun contenu cacao, aucune méthodologie téléchargeable |
+| Green Means Go | Site consulté (IND-001) : page de présentation d'un outil interactif, sans contenu cacao ni méthode téléchargeable ; exclu du corpus indexé, cité comme outil dans le mémoire |
 | Food Systems Dashboard | Profil Côte d'Ivoire (IND-005), FAQ (IND-006), article de méthode (IND-004) |
 | Littérature réglementaire | Règlements 2023/1115 et 2025/2650 en français, document d'orientation de la Commission du 20 juillet 2026 (EUDR-001, 002, 010) |
 | Littérature scientifique | 5 articles en accès libre (MAL-015, BPA-013 à 015, IND-004) |
@@ -106,12 +106,30 @@ Fiches du CNRA : liste complète sur <https://cnra.ci/nos-fiches-techniques/?tax
 | BPA-001 : manuel FIRCA version planteur | Doublon du Manuel du planteur du Conseil du Café-Cacao (BPA-005) |
 | CERT-001 : norme Rainforest Alliance | Aucun document de la norme trouvé sur la page |
 | Standard Fairtrade pour le cacao, version française 1.5 (2017-2019) | Version dépassée : CERT-009 cite la version 2.1 du 27.09.2023 ; seule la version anglaise récente est à rechercher |
+| EUDR-004 : AGRINFO, clarifications de mai 2026 | Page retirée par le site (erreur 404 constatée le 01/11/2026) ; contenu couvert par EUDR-002 et EUDR-010 |
+| EUDR-005 : AGRINFO, publications et ressources | Liste de liens, sans contenu propre |
+| EUDR-006 : actualité Access2Markets du 28/01/2026 (report de l'EUDR) | Reprise par EUDR-002 et EUDR-003 ; dates des petites entreprises présentées de façon incohérente |
+| IND-001 : Green Means Go | Page de présentation d'une plateforme interactive, rien d'indexable |
+| IND-002 : accueil du Food Systems Dashboard | Navigation et présentation ; contenu utile dans IND-005 et IND-006 |
 | Articles de presse sur le Swollen Shoot                                            | Servent à repérer les sources officielles, pas à répondre           |
 
 ### 6.4 Manques à combler
 
 - **Documents COCOACERT et Digital Knowledge Hub** : en attente de réponse du directeur de mémoire. Sans réponse, le corpus reste constitué de sources publiques, et cette limite est expliquée dans le mémoire, avec les dates des demandes.
-- **Objectif** : 51 documents validés pour 100 visés. Compter un chapitre de manuel comme une fiche est possible, mais à justifier et à signaler dans le mémoire.
+- **Page web à capturer en PDF** : EUDR-009, la FAQ de la Commission (chemin prévu dans le tableau 6.5).
+- **Objectif** : 46 documents validés pour 100 visés. Compter un chapitre de manuel comme une fiche est possible, mais à justifier et à signaler dans le mémoire.
+
+### 6.5 Pages web conservées : copies PDF
+
+État au 1er novembre 2026 : EUDR-003, EUDR-007, CERT-003 et IND-005 sont capturées et chargées (couche de texte ajoutée par OCR, voir la décision D7 des spécifications) ; EUDR-009 attend sa copie.
+
+| doc_id | Page à enregistrer | Fichier à créer dans `data/corpus/` |
+| --- | --- | --- |
+| EUDR-003 | Page EUDR de la Commission, version française (`..._fr`) | `eudr/ce_page_eudr_2026-11-01.pdf` |
+| EUDR-007 | Article de Trase (20/08/2024) | `eudr/trase_2024_petits_producteurs_eudr.pdf` |
+| EUDR-009 | FAQ de la Commission, avril 2026 : ouvrir le fichier HTML téléchargeable de la page, puis l'enregistrer en PDF | `eudr/ce_faq_eudr_2026-04.pdf` |
+| CERT-003 | Article de la World Cocoa Foundation (30/10/2024) | `certification/wcf_2024_ars1000_3_points.pdf` |
+| IND-005 | Profil Côte d'Ivoire du Food Systems Dashboard (menu « Profils de pays » ; la version imprimable n'existe plus) | `indicateurs/fsd_profil_cote_divoire_2026-11-01.pdf` |
 
 ## 7. Droits d'auteur et versionnement
 
