@@ -116,12 +116,11 @@ Fiches du CNRA : liste complète sur <https://cnra.ci/nos-fiches-techniques/?tax
 ### 6.4 Manques à combler
 
 - **Documents COCOACERT et Digital Knowledge Hub** : en attente de réponse du directeur de mémoire. Sans réponse, le corpus reste constitué de sources publiques, et cette limite est expliquée dans le mémoire, avec les dates des demandes.
-- **Page web à capturer en PDF** : EUDR-009, la FAQ de la Commission (chemin prévu dans le tableau 6.5).
 - **Objectif** : 46 documents validés pour 100 visés. Compter un chapitre de manuel comme une fiche est possible, mais à justifier et à signaler dans le mémoire.
 
 ### 6.5 Pages web conservées : copies PDF
 
-État au 1er novembre 2026 : EUDR-003, EUDR-007, CERT-003 et IND-005 sont capturées et chargées (couche de texte ajoutée par OCR, voir la décision D7 des spécifications) ; EUDR-009 attend sa copie.
+État au 1er novembre 2026 : les 5 pages sont capturées et chargées, avec une couche de texte ajoutée par OCR (voir la décision D7 des spécifications). La FAQ (EUDR-009) a été capturée dans sa version française.
 
 | doc_id | Page à enregistrer | Fichier à créer dans `data/corpus/` |
 | --- | --- | --- |
