@@ -25,6 +25,10 @@ def test_nettoyer_texte_recolle_les_mots_coupes_et_les_lignes():
     assert nettoyer_texte(brut) == "Son bénéfice est de 250 000 F parhectare"
 
 
+def test_nettoyer_texte_remplace_les_ligatures():
+    assert nettoyer_texte("cannot a\ufb00ord, v\u00e9ri\ufb01\u00e9e") == "cannot afford, vérifiée"
+
+
 def test_nettoyer_texte_garde_les_tirets_des_mots_composes():
     assert nettoyer_texte("piqueurs-suceurs et\nNPK 0-23-19") == "piqueurs-suceurs et NPK 0-23-19"
 

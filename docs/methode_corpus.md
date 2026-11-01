@@ -120,7 +120,7 @@ Fiches du CNRA : liste complète sur <https://cnra.ci/nos-fiches-techniques/?tax
 
 ### 6.5 Pages web conservées : copies PDF
 
-État au 1er novembre 2026 : les 5 pages sont capturées et chargées, avec une couche de texte ajoutée par OCR (voir la décision D7 des spécifications). La FAQ (EUDR-009) a été capturée dans sa version française.
+État au 1er novembre 2026 : les 5 pages sont chargées. EUDR-003 et EUDR-009 (FAQ, version française) sont les captures d'origine, avec une couche de texte ajoutée par OCR. EUDR-007, CERT-003 et IND-005 sont des copies texte de la page d'origine en anglais, relevées dans le navigateur intégré et vérifiées contre la page (voir la décision D7 des spécifications).
 
 | doc_id | Page à enregistrer | Fichier à créer dans `data/corpus/` |
 | --- | --- | --- |

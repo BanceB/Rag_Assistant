@@ -41,6 +41,10 @@ SEUIL_MARGE = 0.5  # bloc répété dans la marge sur au moins 50 % des pages : 
 SEUIL_PARTOUT = 0.8  # bloc court répété sur au moins 80 % des pages, où qu'il soit
 TITRES_A_GARDER = re.compile(r"(article|section|chapitre|annexe|partie)\b")
 BRUIT = {"[no notes on this page]"}  # annotations d'export laissées dans certains PDF
+# Ligatures typographiques (« ﬁ », « ﬀ »…) remplacées par leurs lettres
+LIGATURES = str.maketrans(
+    {"ﬀ": "ff", "ﬁ": "fi", "ﬂ": "fl", "ﬃ": "ffi", "ﬄ": "ffl", "ﬅ": "st", "ﬆ": "st"}
+)
 
 # Métadonnées du catalogue recopiées sur chaque page (citer la source, filtrer par thème)
 CHAMPS_CATALOGUE = (
@@ -64,11 +68,13 @@ def nettoyer_texte(texte: str) -> str:
     """Nettoie un bloc de texte extrait d'un PDF.
 
     - normalise l'Unicode (accents composés) et les espaces insécables ;
+    - remplace les ligatures typographiques (« ﬁ », « ﬀ »…) par leurs lettres, sinon
+      « afford » ou « vérifiée » ne seraient plus retrouvés par une recherche ;
     - recolle les mots coupés en fin de ligne (« béné-\\nfice » → « bénéfice ») ;
     - réunit les lignes d'un même bloc en une seule ligne ;
     - réduit les espaces multiples.
     """
-    texte = unicodedata.normalize("NFC", texte)
+    texte = unicodedata.normalize("NFC", texte).translate(LIGATURES)
     texte = texte.replace("­", "").replace(" ", " ")
     texte = re.sub(r"(?<=\w)-[ \t]*\n[ \t]*(?=[a-zà-ÿ])", "", texte)
     texte = re.sub(r"\s*\n\s*", " ", texte)
