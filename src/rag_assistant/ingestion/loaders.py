@@ -41,6 +41,8 @@ SEUIL_MARGE = 0.5  # bloc répété dans la marge sur au moins 50 % des pages : 
 SEUIL_PARTOUT = 0.8  # bloc court répété sur au moins 80 % des pages, où qu'il soit
 TITRES_A_GARDER = re.compile(r"(article|section|chapitre|annexe|partie)\b")
 BRUIT = {"[no notes on this page]"}  # annotations d'export laissées dans certains PDF
+# Ligne de sommaire : intitulé suivi de points de suite et d'un numéro de page
+LIGNE_DE_SOMMAIRE = re.compile(r"(\.\s?){4,}\s*\d{1,3}\s*$|…{2,}\s*\d{1,3}\s*$")
 # Ligatures typographiques (« ﬁ », « ﬀ »…) remplacées par leurs lettres
 LIGATURES = str.maketrans(
     {"ﬀ": "ff", "ﬁ": "fi", "ﬂ": "fl", "ﬃ": "ffi", "ﬄ": "ffl", "ﬅ": "st", "ﬆ": "st"}
@@ -156,6 +158,7 @@ def lire_pdf(chemin: Path) -> list[str]:
             and b.lower() not in repetes
             and b not in BRUIT
             and not re.fullmatch(r"[\d\s\-–/|.]*", b)  # numéro de page seul
+            and not LIGNE_DE_SOMMAIRE.search(b)
         ]
         textes.append(_assembler(gardes))
     return textes

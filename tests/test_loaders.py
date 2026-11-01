@@ -10,6 +10,7 @@ from test_catalogue import ecrire_catalogue, ligne
 from rag_assistant.config import get_settings
 from rag_assistant.ingestion.loaders import (
     CHAMPS_CATALOGUE,
+    LIGNE_DE_SOMMAIRE,
     _assembler,
     blocs_repetes,
     charger_corpus,
@@ -27,6 +28,12 @@ def test_nettoyer_texte_recolle_les_mots_coupes_et_les_lignes():
 
 def test_nettoyer_texte_remplace_les_ligatures():
     assert nettoyer_texte("cannot a\ufb00ord, v\u00e9ri\ufb01\u00e9e") == "cannot afford, vérifiée"
+
+
+def test_lignes_de_sommaire_reconnues():
+    assert LIGNE_DE_SOMMAIRE.search("2.2. Conduite d'une pépinière ................ 22")
+    assert LIGNE_DE_SOMMAIRE.search("Table 39: Number of EAs per Stratum . . . . . 165")
+    assert not LIGNE_DE_SOMMAIRE.search("Il faut 65 m2 de pépinière pour 1 500 plants.")
 
 
 def test_nettoyer_texte_garde_les_tirets_des_mots_composes():

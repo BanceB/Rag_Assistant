@@ -124,9 +124,21 @@ Ordre de grandeur : 100 documents d'environ 20 pages font à peu près 1,2 milli
 
 **Décision :** Chroma, pour la souveraineté des données, le coût nul et l'hébergement possible au LASTIC. Le code passera par `settings.vectorstore.provider`, afin de basculer d'une base à l'autre en changeant une ligne de configuration. Les données Chroma sont stockées dans `data/chroma/`, non versionné : on les reconstruit à partir du corpus avec le pipeline d'ingestion.
 
-### D5. Découpage — **provisoire**
+### D5. Découpage — **provisoire (réglage), décidé (méthode)**
 
-`RecursiveCharacterTextSplitter`, 2000 caractères et 200 de chevauchement, avec un découpage par article pour les textes réglementaires. Le réglage final sera choisi par la mesure à l'étape 11 (comparaison 500/50, 1000/150, 2000/200).
+Méthode (`ingestion/chunking.py`) : `RecursiveCharacterTextSplitter` appliqué page par page (un chunk ne chevauche jamais deux pages, pour citer « document, p. 12 »). Dans les règlements, coupure préalable à chaque « Article N ». Les morceaux de moins de 100 caractères (intertitre seul, légende) sont rattachés à leur voisin. Chaque chunk commence par un en-tête contextuel (titre, organisme, année, section) et porte `section`, `chunk_index` et un identifiant stable `chunk_id` (`MAL-001-p003-c01`). Les lignes de sommaire (points de suite et numéro de page) sont retirées au chargement.
+
+Mesure du 1er novembre 2026 sur le corpus (46 documents, 1 408 pages) : « preuves intactes » = part des 487 extraits de preuve du jeu d'évaluation contenus en entier dans un même chunk ; tokens estimés à 4 caractères par token, en-têtes compris.
+
+| Réglage (caractères) | Chunks | Taille moyenne | Chunks < 100 car. | Tokens estimés | Preuves intactes |
+| --- | --- | --- | --- | --- | --- |
+| 500 / 50 | 9 458 | 354 | 27 | 1,30 M | 99,8 % |
+| 1000 / 150 | 4 867 | 707 | 24 | 1,10 M | 100 % |
+| 2000 / 200 | 2 602 | 1 306 | 22 | 0,98 M | 100 % |
+
+Coût de vectorisation avec `voyage-4` : environ 1 million de tokens par indexation complète, soit quelques centimes, très en dessous des 200 millions offerts. Le critère de coût ne départage donc pas les réglages.
+
+**Décision :** 2000 / 200 reste le réglage par défaut (`settings.yaml`). Les trois réglages préservent les preuves ; le choix final se fera à l'étape 11 sur la qualité de la recherche (rappel@k) et des réponses, en indexant les trois.
 
 ### D6. Interface — **décidé**
 
