@@ -1,6 +1,6 @@
 # Spécifications techniques : agent RAG COCOACERT
 
-> Statut : **décisions D1 à D4 et D6 prises le 26 octobre 2026 (D7 et D8 le 1er novembre), à présenter au directeur de mémoire.** D5 reste provisoire jusqu'aux mesures de l'étape 11.
+> Statut : **décisions D1 à D4 et D6 prises le 26 octobre 2026 (D7 et D8 le 1er novembre, D9 le 2 novembre), à présenter au directeur de mémoire.** D5 reste provisoire jusqu'aux mesures de l'étape 11.
 > Tarifs et limites relevés le 26 octobre 2026 (sources en fin de document).
 
 ## 1. Architecture retenue
@@ -70,7 +70,7 @@ Chaque réponse est :
 
 ### 2.6 Vérification
 
-Le jeu `eval/questions.jsonl` contient 297 questions : 156 posées par des agriculteurs, 42 par des techniciens, 43 par des coopératives, 29 par des étudiants ou chercheurs et 27 par d'autres parties prenantes (ONG, exportateurs, chocolatiers, bailleurs). 256 sont des questions normales (dont 14 conversations suivies et 11 comparaisons, dont plusieurs entre documents qui ne donnent pas les mêmes chiffres), 13 des demandes de décision, 14 portent sur une information absente du corpus et 14 sont hors sujet. Chaque question normale porte une réponse attendue et au moins une preuve (document, page, extrait mot pour mot) vérifiée automatiquement dans le texte des PDF ; `doc_ids_attendus` en découle et sert à mesurer le rappel de la recherche. Quand plusieurs documents donnent la même réponse, chacun est cité (59 questions ont plusieurs documents attendus) : retrouver l'un d'eux compte comme un succès. Les questions « absentes » ont été contrôlées par recherche dans tout le corpus PDF. Les 46 documents chargés sont tous cités, dont les 5 pages web capturées en PDF le 1er novembre 2026 ; 5 autres pages web ont été exclues. Le jeu a été généré par Claude à partir du corpus et doit être relu par l'étudiant. Le test `tests/test_questions.py` vérifie automatiquement la forme, la couverture et la cohérence avec le catalogue. Les cibles chiffrées sont celles du §11 : au moins 90 % de réponses sourcées, au moins 90 % des questions hors corpus détectées, 5 s maximum, au moins 80 % de pertinence perçue.
+Le jeu `eval/questions.jsonl` contient 297 questions : 156 posées par des agriculteurs, 42 par des techniciens, 43 par des coopératives, 29 par des étudiants ou chercheurs et 27 par d'autres parties prenantes (ONG, exportateurs, chocolatiers, bailleurs). 256 sont des questions normales (dont 14 conversations suivies et 11 comparaisons, dont plusieurs entre documents qui ne donnent pas les mêmes chiffres), 13 des demandes de décision, 14 portent sur une information absente du corpus et 14 sont hors sujet. Chaque question normale porte une réponse attendue et au moins une preuve (document, page, extrait mot pour mot) vérifiée automatiquement dans le texte des PDF ; `doc_ids_attendus` en découle et sert à mesurer le rappel de la recherche. Quand plusieurs documents donnent la même réponse, chacun est cité (67 questions ont plusieurs documents attendus ; 8 d'entre elles ont été complétées le 2 novembre 2026, voir D9) : retrouver l'un d'eux compte comme un succès. Les questions « absentes » ont été contrôlées par recherche dans tout le corpus PDF. Les 46 documents chargés sont tous cités, dont les 5 pages web capturées en PDF le 1er novembre 2026 ; 5 autres pages web ont été exclues. Le jeu a été généré par Claude à partir du corpus et doit être relu par l'étudiant. Le test `tests/test_questions.py` vérifie automatiquement la forme, la couverture et la cohérence avec le catalogue. Les cibles chiffrées sont celles du §11 : au moins 90 % de réponses sourcées, au moins 90 % des questions hors corpus détectées, 5 s maximum, au moins 80 % de pertinence perçue.
 
 ## 3. Décisions
 
@@ -109,7 +109,7 @@ Ordre de grandeur : 100 documents d'environ 20 pages font à peu près 1,2 milli
 
 **Point bloquant levé le 1er novembre 2026 :** le compte gratuit est bridé à 10 000 tokens et 3 requêtes par minute, ce qui rend les tests utilisateurs impossibles. Enregistrer une carte ne suffit pas : Voyage active le palier 1 après un **premier achat de crédit** (au moins 5 $, sans recharge automatique). Le compte est depuis au palier 1 : 8 millions de tokens et 2 000 requêtes par minute pour voyage-4. Une indexation complète (environ 1 million de tokens) reste couverte par les tokens offerts.
 
-**Décision :** `voyage-4` pour son caractère multilingue annoncé, avec un moyen de paiement enregistré. Le reranker associé sera `rerank-3-lite` ou `rerank-3` (étape 6).
+**Décision :** `voyage-4` pour son caractère multilingue annoncé, avec un moyen de paiement enregistré. Le reranker est choisi par la mesure de l'étape 6 (D9).
 
 ### D4. Base vectorielle — **décidé**
 
@@ -169,7 +169,7 @@ Règles de chargement (`ingestion/loaders.py`) :
 
 Avec le repérage des intertitres, la lecture complète du corpus prend une dizaine de secondes au lieu de 3 : PyMuPDF renvoie alors la police et la taille de chaque ligne.
 
-Le test `test_le_texte_charge_contient_toutes_les_preuves` relance la vérification des 447 extraits à chaque `uv run pytest`, quand les PDF sont présents : un nettoyage trop agressif est détecté tout de suite.
+Le test `test_le_texte_charge_contient_toutes_les_preuves` relance la vérification de tous les extraits (499 au 2 novembre 2026) à chaque `uv run pytest`, quand les PDF sont présents : un nettoyage trop agressif est détecté tout de suite.
 
 ### D8. Vectorisation et indexation — **décidé**
 
@@ -187,10 +187,49 @@ Volume au réglage 2000/200 : 46 documents, 2 588 chunks, 3,9 millions de caract
 
 Vérification : `tests/test_indexer.py` (faux modèle d'embedding, sans réseau) contrôle l'absence de doublons, la mise à jour d'un chunk modifié, le retrait d'un chunk disparu, la suppression d'un document, la reprise après un quota dépassé et, quand les PDF sont présents, l'idempotence sur tout le corpus.
 
+### D9. Recherche, reranking et seuil — **décidé**
+
+Code : `rag/retriever.py` ; mesure : `uv run python -m rag_assistant.evaluation.recherche` (résultats bruts et résumé dans `eval/resultats/recherche_2026-11-02*`).
+
+Méthode : recherche vectorielle des 20 chunks les plus proches (similarité cosinus), puis reranking des 20 par un modèle Voyage, qui relit la question avec chaque candidat ; on garde les 4 meilleurs. Si le meilleur score du reranker est sous le seuil, aucun passage n'est jugé pertinent (garde-fou, étape 7). Un filtre de métadonnées (thème, langue) est possible.
+
+Mesure du 2 novembre 2026 sur les 297 questions (269 avec une réponse dans le corpus, 14 hors sujet, 14 absentes du corpus), réglage 2000/200. Rappel@k = part des questions dont un document attendu figure dans les k premiers passages ; MRR = moyenne de 1/rang du premier bon passage.
+
+| Méthode | Rappel@1 | Rappel@4 | MRR@4 | Rappel@20 | Temps moyen (p95) |
+| --- | --- | --- | --- | --- | --- |
+| Vectorielle seule | 74,3 % | 91,4 % | 0,814 | 97,4 % | 0,46 s (0,62 s) |
+| + rerank-2.5 | 81,0 % | **95,9 %** | 0,876 | 97,4 % | 0,95 s (1,43 s) |
+| + rerank-3 | 81,0 % | 95,2 % | 0,868 | 97,4 % | 0,94 s (1,34 s) |
+
+Chiffres calculés avec le jeu d'évaluation complété (voir plus bas). Avec le jeu d'origine, le rappel@4 était de 89,6 % (vectorielle), 92,9 % (rerank-2.5) et 92,6 % (rerank-3) : l'écart entre méthodes et le choix ne changent pas.
+
+Complément du jeu d'évaluation : sur les 19 questions d'abord manquées, 8 avaient reçu un passage d'un autre document qui donne bien la réponse (par exemple la FAQ de la Commission pour la date d'application de l'EUDR, ou le manuel du technicien pour le foreur de tiges). Après relecture, ces documents ont été ajoutés avec un extrait vérifié mot pour mot (12 preuves, module `q_alternatives_etape6`). Les 11 échecs restants sont présentés tels quels :
+
+- 3 suites de conversation (« Et c'est qui qui la paie ? ») : la question seule ne suffit pas ; la reformulation avec l'historique (étape 8) doit les résoudre ;
+- 6 questions EUDR ou certification où un document voisin passe devant : FAQ de la Commission plutôt que le règlement ou le document d'orientation, pages en anglais (Trase, WCF) placées en tête pour des questions françaises sur l'aide de l'UE ou la décision d'achat ;
+- 2 questions agronomiques où le guide général renvoie à une fiche spécialisée sans en donner le contenu (replantation après swollen shoot).
+
+Le reranking gagne 4,5 points de rappel@4 et 6,7 points de rappel@1 pour environ 0,5 s de plus. Au-delà de k = 3, le rappel ne progresse presque plus (95,5 % à k = 3, 95,9 % de k = 4 à 6) : k = 4 est conservé.
+
+Seuil sur le score du reranker : les 14 questions hors sujet ont un meilleur score entre 0,26 et 0,39 ; parmi les 269 questions avec réponse, deux seulement sont sous 0,45 (une demande de décision à 0,38 et une suite de conversation à 0,45), toutes les autres sont au-dessus de 0,53.
+
+| Seuil | Hors sujet écartées | Absentes écartées | Questions avec réponse rejetées |
+| --- | --- | --- | --- |
+| 0,38 | 13 / 14 | 1 / 14 | 0 |
+| **0,40** | **14 / 14** | 1 / 14 | 1 (0,4 %) |
+| 0,45 | 14 / 14 | 4 / 14 | 2 (0,7 %) |
+
+Les questions « absentes du corpus » portent sur le sujet (le cacao, l'EUDR) sans que la réponse figure dans les documents : les passages retrouvés sont proches et le seuil ne les écarte pas. C'est le rôle du garde-fou de l'étape 7 (le modèle de langage vérifie que les passages contiennent la réponse) ; la cible du cahier (au moins 90 % des questions hors corpus détectées) se mesurera sur la chaîne complète, à l'étape 11.
+
+**Décision :** reranker `rerank-2.5` et seuil 0,40 (`settings.yaml`). `rerank-3`, sorti fin septembre 2026 et recommandé par Voyage, fait jeu égal (écart de 2 questions sur 269, non significatif) au même prix (0,05 $ par million de tokens) : il reste l'alternative si `rerank-2.5` est retiré. La recherche hybride avec mots-clés (BM25) n'est pas ajoutée : aucun des 11 échecs ne tient à un sigle ou à un numéro d'article ; la question sera rouverte si l'évaluation de l'étape 11 le montre. Le seuil, fixé sur 14 questions hors sujet seulement, sera revérifié à l'étape 11 avec les questions des testeurs.
+
+Temps : la recherche complète prend 0,95 s en moyenne (1,43 s au 95e centile), ce qui laisse environ 3,5 s à la génération pour tenir les 5 s du cahier des charges.
+
 ## 4. Sources
 
 - Tarifs Claude : <https://platform.claude.com/docs/en/about-claude/pricing>
 - Tarifs Voyage AI : <https://docs.voyageai.com/docs/pricing>
 - Limites de débit Voyage AI : <https://docs.voyageai.com/docs/rate-limits>
 - Modèles Voyage AI (dimensions, multilingue) : <https://mongodb.com/docs/voyageai/models/>
+- Rerankers Voyage AI : <https://docs.voyageai.com/docs/reranker>
 - Offre Pinecone Starter : <https://www.pinecone.io/pricing/>

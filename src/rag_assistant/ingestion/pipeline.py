@@ -41,6 +41,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--chevauchement", type=int, default=reglages.chunking.chunk_overlap)
     parser.add_argument("--chercher", metavar="QUESTION", help="recherche de test, sans réindexer")
     parser.add_argument(
+        "--sans-reranking",
+        action="store_true",
+        help="avec --chercher : recherche vectorielle seule",
+    )
+    parser.add_argument(
         "--k", type=int, default=reglages.retrieval.k, help="nombre de passages renvoyés"
     )
     parser.add_argument(
@@ -67,11 +72,24 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.chercher:
-        resultats = base.similarity_search_with_relevance_scores(args.chercher, k=args.k)
-        for rang, (chunk, score) in enumerate(resultats, start=1):
-            m = chunk.metadata
-            print(f"\n{rang}. score {score:.3f} | {m['chunk_id']} | {m.get('section', '')}")
-            print(chunk.page_content[:500])
+        from rag_assistant.rag.retriever import Recuperateur, RerankerVoyage
+
+        r = reglages.retrieval
+        reranker = None if args.sans_reranking or not r.reranker else RerankerVoyage(r.reranker)
+        seuil = r.seuil_score if reranker else None
+        resultat = Recuperateur(base, reranker, args.k, max(args.k, r.fetch_k), seuil).recuperer(
+            args.chercher
+        )
+        print(f"Reranking : {reranker.modele if reranker else 'aucun'} | seuil : {seuil}")
+        for rang, p in enumerate(resultat.passages, start=1):
+            m = p.chunk.metadata
+            print(
+                f"\n{rang}. score {p.score:.3f} | similarité {p.similarite:.3f} (rang {p.rang_initial})"
+                f" | {m['chunk_id']} | {m.get('section', '')}"
+            )
+            print(p.chunk.page_content[:500])
+        if seuil is not None:
+            print("\nPertinent :", "oui" if resultat.pertinent else "non (sous le seuil)")
         return 0
 
     debut = time.time()

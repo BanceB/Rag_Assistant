@@ -20,6 +20,7 @@ import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import TypeVar
 
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
@@ -28,6 +29,7 @@ from langchain_core.vectorstores import VectorStore
 from rag_assistant.config import Settings, get_settings
 
 log = logging.getLogger(__name__)
+T = TypeVar("T")
 
 TAILLE_LOT = 64  # chunks par requête : environ 30 000 tokens, très en dessous des limites
 ESSAIS_MAX = 6  # attentes successives : 2, 4, 8, 16, 32 s
@@ -90,8 +92,9 @@ def empreinte(chunk: Document) -> str:
     return hashlib.sha1(chunk.page_content.encode("utf-8")).hexdigest()
 
 
-def avec_reessais(action: Callable[[], None], description: str) -> None:
-    """Exécute `action` ; en cas d'erreur passagère, réessaie après 2, 4, 8… secondes."""
+def avec_reessais(action: Callable[[], T], description: str) -> T:
+    """Exécute `action` et renvoie son résultat ; en cas d'erreur passagère (quota dépassé,
+    coupure réseau), réessaie après 2, 4, 8… secondes. Sert aussi au reranking (étape 6)."""
     from voyageai import error as voyage
 
     passageres = (
@@ -105,8 +108,7 @@ def avec_reessais(action: Callable[[], None], description: str) -> None:
     attente = ATTENTE_INITIALE
     for essai in range(1, ESSAIS_MAX + 1):
         try:
-            action()
-            return
+            return action()
         except passageres as erreur:
             if essai == ESSAIS_MAX:
                 raise
@@ -115,6 +117,7 @@ def avec_reessais(action: Callable[[], None], description: str) -> None:
             )
             time.sleep(attente)
             attente *= 2
+    raise AssertionError("inaccessible : la dernière tentative renvoie ou lève")
 
 
 @dataclass

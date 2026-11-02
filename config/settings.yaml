@@ -29,7 +29,8 @@ chunking:
 retrieval:
   k: 4                            # passages donnés au LLM
   fetch_k: 20                     # candidats récupérés avant reranking
-  seuil_score: null               # fixé à l'étape 6, à partir des mesures
+  reranker: rerank-2.5            # décision D9 : reranker Voyage (null = sans reranking)
+  seuil_score: 0.40               # décision D9 : score du reranker sous lequel rien n'est jugé pertinent
 
 memoire:
   fenetre_messages: 6

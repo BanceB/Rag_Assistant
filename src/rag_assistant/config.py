@@ -63,6 +63,7 @@ class RetrievalSettings:
     k: int
     fetch_k: int
     seuil_score: float | None
+    reranker: str | None = None  # modèle de reranking Voyage ; None = pas de reranking
 
 
 @dataclass(frozen=True)
