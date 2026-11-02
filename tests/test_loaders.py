@@ -15,6 +15,7 @@ from rag_assistant.ingestion.loaders import (
     blocs_repetes,
     charger_corpus,
     charger_pdf,
+    est_titre_plausible,
     nettoyer_texte,
 )
 
@@ -28,6 +29,31 @@ def test_nettoyer_texte_recolle_les_mots_coupes_et_les_lignes():
 
 def test_nettoyer_texte_remplace_les_ligatures():
     assert nettoyer_texte("cannot a\ufb00ord, v\u00e9ri\ufb01\u00e9e") == "cannot afford, vérifiée"
+
+
+def test_nettoyer_texte_remplace_les_puces_de_police_symbole():
+    assert nettoyer_texte("\uf0b7 Avant les pluies") == "• Avant les pluies"
+
+
+@pytest.mark.parametrize(
+    "texte, attendu",
+    [
+        ("Symptômes sur les feuilles", True),
+        ("11 Principes de traçabilité", True),
+        ("PARTIE 2 : COMMENT CREER UNE PLANTATION", True),
+        ("6. LÉGALITÉ", True),
+        ("DISTRIBUTEUR", False),  # en-tête de colonne en capitales
+        ("Planter les jeunes cacaoyers entre les", False),  # ligne coupée
+        ("sur le tronc", False),
+        ("Source : CNRA", False),
+        ("© CNRA 2022", False),
+        ("Table des matières", False),
+        ("UK Centre Bakeham Lane, Egham, Surrey TW20 9TY, Tel: +44 1491 829080", False),
+        ("Pour ce faire :", False),
+    ],
+)
+def test_est_titre_plausible(texte, attendu):
+    assert est_titre_plausible(texte) is attendu
 
 
 def test_lignes_de_sommaire_reconnues():
@@ -71,12 +97,17 @@ def test_blocs_repetes_ne_touche_pas_aux_documents_courts():
 # ---------------------------------------------------------------- lecture d'un PDF
 
 
-def creer_pdf(chemin, corps):
-    """PDF de test : un en-tête et un numéro de page sur chaque page, plus le corps donné."""
+def creer_pdf(chemin, corps, titres=None):
+    """PDF de test : un en-tête et un numéro de page sur chaque page, plus le corps donné.
+
+    `titres` : un intertitre en gras (police Helvetica-Bold) au-dessus du corps de chaque page.
+    """
     pdf = pymupdf.open()
     for numero, texte in enumerate(corps, start=1):
         page = pdf.new_page()
         page.insert_text((72, 40), "Fiche technique CNRA")
+        if titres:
+            page.insert_text((72, 270), titres[numero - 1], fontname="hebo")
         if texte:
             page.insert_text((72, 300), texte)
         page.insert_text((290, 820), str(numero))
@@ -97,6 +128,18 @@ def test_charger_pdf_une_page_par_document(tmp_path):
     assert all(d.metadata["doc_id"] == "MAL-001" for d in documents)
     assert documents[0].page_content == "Paragraphe numero 1 sur la culture du cacaoyer."
     assert all("Fiche technique CNRA" not in d.page_content for d in documents)
+
+
+def test_charger_pdf_repere_les_intertitres_en_gras(tmp_path):
+    chemin = tmp_path / "fiche.pdf"
+    corps = [f"Paragraphe numero {i} sur la culture du cacaoyer." for i in range(1, 5)]
+    titres = ["Introduction", "Symptômes sur les feuilles", "Lutte chimique", "Conclusion"]
+    creer_pdf(chemin, corps, titres)
+
+    documents = charger_pdf(chemin, {"doc_id": "MAL-001"})
+
+    assert [d.metadata["intertitres"] for d in documents] == titres
+    assert documents[1].page_content.startswith("Symptômes sur les feuilles\n\nParagraphe")
 
 
 # ---------------------------------------------------------------- chargement du corpus

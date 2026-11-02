@@ -121,3 +121,39 @@ def test_corpus_aucune_preuve_coupee_avec_le_reglage_par_defaut():
         if not any(_norm(p["extrait"]) in t for t in par_page.get((p["doc_id"], p["page"]), []))
     ]
     assert coupees == []
+
+
+# ---------------------------------------------------------------- intertitres typographiques
+
+
+def test_section_typographique_prime_sur_la_numerotation():
+    """Avec la typographie, une ligne de tableau numérotée n'ouvre plus de section."""
+    texte = (
+        "Symptômes sur les feuilles\n\n"
+        + "Des taches jaunes apparaissent le long des nervures. " * 8
+        + "\n\n16. Application d'engrais Entretien\n\n"
+        + "Le système de traçabilité doit inclure les registres. " * 8
+    )
+    chunks = decouper(
+        [page(texte, intertitres="Symptômes sur les feuilles")], chunk_size=400, chunk_overlap=0
+    )
+    assert {c.metadata["section"] for c in chunks} == {"Symptômes sur les feuilles"}
+    assert all("intertitres" not in c.metadata for c in chunks)
+
+
+def test_sans_typographie_on_se_replie_sur_la_numerotation():
+    chunks = decouper([page("3.10. Qui est une PME\n\n" + "Texte de la réponse. " * 20)])
+    assert chunks[0].metadata["section"] == "3.10. Qui est une PME"
+
+
+def test_en_tete_abrege_titre_et_organisme_longs():
+    meta = {
+        **META,
+        "titre": "ARS 1000 Cacao durable (parties 1 à 3) : " + "exigences relatives " * 10,
+        "organisme": "ORAN / ARSO (Organisation régionale africaine de normalisation), diffusé par la WCF",
+        "date": "2021",
+    }
+    chunks = decouper([Document(page_content="Texte de la norme. " * 20, metadata=meta)])
+    en_tete = chunks[0].metadata["en_tete"]
+    assert "(ORAN / ARSO, 2021)" in en_tete
+    assert len(en_tete) < 130 and "…" in en_tete

@@ -4,7 +4,10 @@ Règles :
 - on découpe page par page : un chunk ne chevauche jamais deux pages, ce qui permet de citer
   « document, p. 12 » sans ambiguïté ;
 - chaque chunk porte une `section` : le premier intertitre qu'il contient (« Article 9 »,
-  « 2.2.6 Semis »…), sinon le dernier intertitre rencontré avant lui dans le document ;
+  « 2.2.6 Semis »…), sinon le dernier intertitre rencontré avant lui dans le document.
+  Les intertitres sont ceux que le chargement a repérés par la typographie (métadonnée
+  `intertitres`) ; pour une page sans typographie exploitable (OCR), on se replie sur la
+  numérotation (« 3.10. Qui est une PME ») ;
 - dans les règlements, on coupe d'abord à chaque « Article N », pour qu'un chunk ne mélange
   pas deux articles ;
 - chaque chunk commence par un en-tête contextuel (titre du document, organisme, section),
@@ -41,6 +44,7 @@ INTERTITRE = re.compile(
     r"(Article \d+[a-z]?( bis)?|ANNEXE [IVX]+|Annexe [IVX\d]+|\d{1,2}(\.\d{1,2}){0,3}\.?\s+[A-ZÉÈÀ])"
 )
 ARTICLE = re.compile(r"\n\n(?=Article \d+[a-z]?(?: bis)?\n\n)")
+ARTICLE_SEUL = re.compile(r"(Article \d+[a-z]?( bis)?|ANNEXE [IVX]+|Annexe [IVX\d]+)")
 
 
 def est_intertitre(paragraphe: str) -> bool:
@@ -53,7 +57,26 @@ def est_intertitre(paragraphe: str) -> bool:
     )
 
 
-def fusionner_petits(bouts: list[str], minimum: int = CHUNK_MIN_CARACTERES) -> list[str]:
+def est_section(paragraphe: str, intertitres: set[str] | None) -> bool:
+    """Le paragraphe ouvre-t-il une section ?
+
+    `intertitres` : ceux que le chargement a repérés sur la page (gras ou plus grand), ou
+    None si la page n'a pas de typographie exploitable : on se fie alors à la numérotation.
+    Un intitulé d'article ou d'annexe compte toujours.
+    """
+    p = paragraphe.strip()
+    if ARTICLE_SEUL.fullmatch(p):
+        return True
+    if intertitres is None:
+        return est_intertitre(p)
+    return p in intertitres
+
+
+def fusionner_petits(
+    bouts: list[str],
+    minimum: int = CHUNK_MIN_CARACTERES,
+    intertitres: set[str] | None = None,
+) -> list[str]:
     """Rattache les morceaux trop courts (intertitre seul, légende, fin de phrase) à un voisin.
 
     Un morceau court est collé au suivant (un intertitre annonce ce qui suit) ; s'il est le
@@ -71,17 +94,37 @@ def fusionner_petits(bouts: list[str], minimum: int = CHUNK_MIN_CARACTERES) -> l
         else:
             resultat.append(bout)
     if en_attente:
-        if resultat and not est_intertitre(en_attente.split("\n\n")[-1]):
+        if resultat and not est_section(en_attente.split("\n\n")[-1], intertitres):
             resultat[-1] = f"{resultat[-1]}\n\n{en_attente}"
         else:
             resultat.append(en_attente)
     return resultat
 
 
+TITRE_EN_TETE_MAX = 100  # caractères : l'en-tête doit rester court devant le passage
+ORGANISME_EN_TETE_MAX = 40
+
+
+def _abreger(texte: str, maximum: int) -> str:
+    """Coupe au dernier mot entier avant `maximum` caractères, avec « … »."""
+    if len(texte) <= maximum:
+        return texte
+    return texte[:maximum].rsplit(" ", 1)[0].rstrip(" ,;:—-(") + "…"
+
+
 def en_tete(meta: dict) -> str:
-    """En-tête contextuel ajouté au début de chaque chunk."""
-    source = ", ".join(x for x in (meta.get("organisme"), meta.get("date", "")[:4]) if x)
-    ligne = f"{meta.get('titre', '')} ({source})" if source else meta.get("titre", "")
+    """En-tête contextuel ajouté au début de chaque chunk : titre (organisme, année) — section.
+
+    Titre et organisme sont abrégés s'ils sont longs (« ORAN / ARSO (Organisation régionale
+    africaine de normalisation), diffusé par… » → « ORAN / ARSO ») ; le catalogue garde les
+    intitulés complets pour la citation.
+    """
+    organisme = meta.get("organisme", "")
+    if len(organisme) > ORGANISME_EN_TETE_MAX:
+        organisme = _abreger(organisme.split(" (")[0].split(", diffusé")[0], ORGANISME_EN_TETE_MAX)
+    titre = _abreger(meta.get("titre", ""), TITRE_EN_TETE_MAX)
+    source = ", ".join(x for x in (organisme, meta.get("date", "")[:4]) if x)
+    ligne = f"{titre} ({source})" if source else titre
     if meta.get("section"):
         ligne += f" — {meta['section']}"
     return ligne
@@ -113,17 +156,26 @@ def decouper(
         meta = page.metadata
         doc_id = meta.get("doc_id", meta.get("source", ""))
         texte = page.page_content
+        # intertitres repérés au chargement (texte sur plusieurs lignes : Chroma n'accepte
+        # pas de liste) ; on ne les recopie pas dans les métadonnées du chunk
+        meta = {k: v for k, v in meta.items() if k != "intertitres"}
+        reperes = page.metadata.get("intertitres")
+        intertitres_page = None if reperes is None else set(filter(None, reperes.split("\n")))
         # Règlements : un article commence toujours un nouveau morceau
         morceaux = ARTICLE.split(texte) if meta.get("type") == "reglement" else [texte]
         morceaux = [m for m in morceaux if m.strip()]
         # Les morceaux trop courts sont rattachés à un voisin, sans franchir un article
-        bouts = [b for m in morceaux for b in fusionner_petits(decoupeur.split_text(m))]
+        bouts = [
+            b
+            for m in morceaux
+            for b in fusionner_petits(decoupeur.split_text(m), intertitres=intertitres_page)
+        ]
         for index, bout in enumerate(bouts):
             # section : le premier intertitre du chunk, sinon le dernier vu avant lui
-            intertitres = [p.strip() for p in bout.split("\n\n") if est_intertitre(p)]
-            section = intertitres[0] if intertitres else section_par_doc.get(doc_id, "")
-            if intertitres:
-                section_par_doc[doc_id] = intertitres[-1]
+            sections = [p.strip() for p in bout.split("\n\n") if est_section(p, intertitres_page)]
+            section = sections[0] if sections else section_par_doc.get(doc_id, "")
+            if sections:
+                section_par_doc[doc_id] = sections[-1]
             meta_chunk = {
                 **meta,
                 "section": section,

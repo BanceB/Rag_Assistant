@@ -43,6 +43,15 @@ TITRES_A_GARDER = re.compile(r"(article|section|chapitre|annexe|partie)\b")
 BRUIT = {"[no notes on this page]"}  # annotations d'export laissées dans certains PDF
 # Ligne de sommaire : intitulé suivi de points de suite et d'un numéro de page
 LIGNE_DE_SOMMAIRE = re.compile(r"(\.\s?){4,}\s*\d{1,3}\s*$|…{2,}\s*\d{1,3}\s*$")
+# Intertitres repérés par la typographie (gras ou corps plus grand que le texte courant)
+TITRE_LIGNES_MAX = 3
+TITRE_ECART_TAILLE = 1.5  # points de plus que le texte courant
+TITRE_REPETITIONS_MAX = 2  # au-delà : en-tête de tableau ou de colonne, pas un intertitre
+POLICE_OCR = "GlyphLessFont"  # couche de texte ajoutée par OCR : pas de gras ni de taille fiable
+MOTS_VIDES_FINAUX = {
+    "de", "des", "du", "la", "le", "les", "l", "d", "et", "à", "en", "au", "aux", "un", "une",
+    "par", "pour", "sur", "dans", "the", "of", "and", "to", "in", "for", "a", "an",
+}  # fmt: skip
 # Ligatures typographiques (« ﬁ », « ﬀ »…) remplacées par leurs lettres
 LIGATURES = str.maketrans(
     {"ﬀ": "ff", "ﬁ": "fi", "ﬂ": "fl", "ﬃ": "ffi", "ﬄ": "ffl", "ﬅ": "st", "ﬆ": "st"}
@@ -78,6 +87,7 @@ def nettoyer_texte(texte: str) -> str:
     """
     texte = unicodedata.normalize("NFC", texte).translate(LIGATURES)
     texte = texte.replace("­", "").replace(" ", " ")
+    texte = re.sub(r"[\uf000-\uf0ff]", "•", texte)  # puces des polices Symbol / Wingdings
     texte = re.sub(r"(?<=\w)-[ \t]*\n[ \t]*(?=[a-zà-ÿ])", "", texte)
     texte = re.sub(r"\s*\n\s*", " ", texte)
     return re.sub(r"[ \t]+", " ", texte).strip()
@@ -109,16 +119,20 @@ def blocs_repetes(pages: list[list[tuple[str, bool]]]) -> set[str]:
     return {k for k in repetes if not TITRES_A_GARDER.match(k)}
 
 
-def _assembler(blocs: list[str]) -> str:
+def _assembler(blocs: list[str], titres: set[str] | None = None) -> str:
     """Assemble les blocs d'une page en paragraphes séparés par une ligne vide.
 
     Certains PDF découpent chaque ligne en un bloc : un bloc qui ne finit pas une phrase
     et qui est suivi d'un bloc commençant par une minuscule appartient au même paragraphe.
+    Un intertitre (`titres`) reste toujours un paragraphe à part.
     """
+    titres = titres or set()
     paragraphes: list[str] = []
     for bloc in blocs:
         if (
             paragraphes
+            and paragraphes[-1] not in titres
+            and bloc not in titres
             and not re.search(r"[.:;!?»)]$", paragraphes[-1])
             and re.match(r"[a-zà-ÿ(]", bloc)
         ):
@@ -131,44 +145,151 @@ def _assembler(blocs: list[str]) -> str:
 # ---------------------------------------------------------------- lecture des PDF
 
 
-def lire_pdf(chemin: Path) -> list[str]:
-    """Renvoie le texte nettoyé de chaque page du PDF (page 1 = élément 0), sans en-têtes ni pieds."""
-    pages: list[list[tuple[str, bool]]] = []
-    with pymupdf.open(chemin) as pdf:
-        for page in pdf:
-            hauteur = page.rect.height
-            blocs = []
-            # bloc = (x0, y0, x1, y1, texte, numéro, type) ; type 0 = texte, 1 = image
-            for x0, y0, x1, y1, texte, _, type_bloc in page.get_text("blocks"):
-                texte = nettoyer_texte(texte)
-                if type_bloc != 0 or not texte:
-                    continue
-                dans_marge = (
-                    y0 < MARGE_HAUTE_BASSE * hauteur or y1 > (1 - MARGE_HAUTE_BASSE) * hauteur
+def est_titre_plausible(texte: str) -> bool:
+    """Filtre les faux intertitres : légendes, crédits, en-têtes de tableau, fragments de ligne."""
+    t = texte.lstrip("•◊▪-–— ").strip()
+    mots = re.findall(r"\w+", t.lower())
+    numerote = re.match(r"\d{1,2}(\.\d{1,2}){0,3}\.?\s+\S", t) is not None
+    return (
+        4 <= len(t) <= 120
+        and bool(mots)
+        and (t[0].isupper() or t[0].isdigit())
+        and not t.endswith((".", ";", ",", ":"))
+        and not LIGNE_DE_SOMMAIRE.search(t)
+        and not re.search(r"(\.\s?){4,}|…{2,}", t)
+        and not re.search(r"©|@|www\.|https?:|\btel\b|photo", t.lower())
+        and sum(c.isdigit() for c in t) <= 6  # adresse, référence, ligne de tableau chiffrée
+        and not re.fullmatch(r"(table des matières|sommaire|(table of )?contents)", t.lower())
+        and not re.match(r"(source|figure|fig\.|tableau|table \d|photo|auteurs?)\b", t.lower())
+        and mots[-1] not in MOTS_VIDES_FINAUX
+        # tout en capitales : seulement s'il est numéroté ou annonce une partie
+        and (
+            any(c.islower() for c in t)
+            or numerote
+            or re.match(r"(PARTIE|CHAPITRE|ANNEXE|SECTION)\b", t) is not None
+        )
+    )
+
+
+def _gras(span: dict) -> bool:
+    police = span["font"].lower()
+    return bool(span["flags"] & 16) or any(
+        m in police for m in ("bold", "black", "heavy", "semibold", "demi")
+    )
+
+
+@dataclass
+class _Bloc:
+    texte: str
+    dans_marge: bool
+    titre: bool = False  # lignes de tête en gras ou en plus grand : intertitre candidat
+
+
+def _blocs_de_page(contenu: dict, taille_courante: float) -> list[_Bloc]:
+    """Blocs de texte d'une page (sortie de `get_text("dict")`) ; les lignes de tête
+    typographiées deviennent un bloc à part."""
+    hauteur = contenu["height"]
+    blocs: list[_Bloc] = []
+    for bloc in contenu["blocks"]:
+        if bloc["type"] != 0:  # 1 = image
+            continue
+        x0, y0, x1, y1 = bloc["bbox"]
+        marge = y0 < MARGE_HAUTE_BASSE * hauteur or y1 > (1 - MARGE_HAUTE_BASSE) * hauteur
+        lignes = []
+        for ligne in bloc["lines"]:
+            spans = [s for s in ligne["spans"] if s["text"].strip()]
+            if spans:
+                typo = taille_courante > 0 and (
+                    all(_gras(s) for s in spans)
+                    or min(s["size"] for s in spans) >= taille_courante + TITRE_ECART_TAILLE
                 )
-                blocs.append((texte, dans_marge))
-            pages.append(blocs)
-    repetes = blocs_repetes(pages)
-    textes = []
+                lignes.append(("".join(s["text"] for s in ligne["spans"]), typo))
+        tete = 0
+        while tete < len(lignes) and lignes[tete][1]:
+            tete += 1
+        if 0 < tete <= TITRE_LIGNES_MAX:
+            titre = nettoyer_texte("\n".join(t for t, _ in lignes[:tete]))
+            reste = nettoyer_texte("\n".join(t for t, _ in lignes[tete:]))
+            if est_titre_plausible(titre):
+                blocs.append(_Bloc(titre, marge, titre=True))
+                if reste:
+                    blocs.append(_Bloc(reste, marge))
+                continue
+        texte = nettoyer_texte("\n".join(t for t, _ in lignes))
+        if texte:
+            blocs.append(_Bloc(texte, marge))
+    return blocs
+
+
+def _taille_courante(contenus: list[dict]) -> tuple[float, str]:
+    """Taille et police du texte courant : celles qui portent le plus de caractères."""
+    tailles: Counter[float] = Counter()
+    polices: Counter[str] = Counter()
+    for contenu in contenus:
+        for bloc in contenu["blocks"]:
+            for ligne in bloc.get("lines", []):
+                for s in ligne["spans"]:
+                    n = len(s["text"].strip())
+                    tailles[round(s["size"])] += n
+                    polices[s["font"]] += n
+    if not tailles:
+        return 0.0, ""
+    return float(tailles.most_common(1)[0][0]), polices.most_common(1)[0][0]
+
+
+@dataclass
+class PageLue:
+    texte: str
+    titres: list[str] | None  # None : typographie inexploitable (OCR), repli sur la numérotation
+
+
+def lire_pdf(chemin: Path) -> list[PageLue]:
+    """Lit chaque page du PDF (page 1 = élément 0) : texte nettoyé et intertitres repérés.
+
+    En-têtes et pieds de page répétés, numéros de page et lignes de sommaire sont retirés.
+    Un intertitre est une ligne de tête en gras ou en plus grand que le texte courant, qui
+    passe `est_titre_plausible` et ne revient pas plus de deux fois dans le document ; les
+    titres du signet (table des matières du PDF) comptent aussi.
+    """
+    with pymupdf.open(chemin) as pdf:
+        contenus = [page.get_text("dict") for page in pdf]
+        signets = {nettoyer_texte(t).lower() for _, t, _ in pdf.get_toc()}
+    taille, police = _taille_courante(contenus)
+    typographie = police != POLICE_OCR
+    pages = [_blocs_de_page(c, taille if typographie else 0.0) for c in contenus]
+    repetes = blocs_repetes([[(b.texte, b.dans_marge) for b in blocs] for blocs in pages])
+    occurrences = Counter(b.texte.lower() for blocs in pages for b in blocs if b.titre)
+    resultat = []
     for blocs in pages:
         gardes = [
             b
-            for b, _ in blocs
-            if _cle(b) not in repetes
-            and b.lower() not in repetes
-            and b not in BRUIT
-            and not re.fullmatch(r"[\d\s\-–/|.]*", b)  # numéro de page seul
-            and not LIGNE_DE_SOMMAIRE.search(b)
+            for b in blocs
+            if _cle(b.texte) not in repetes
+            and b.texte.lower() not in repetes
+            and b.texte not in BRUIT
+            and not re.fullmatch(r"[\d\s\-–/|.]*", b.texte)  # numéro de page seul
+            and not LIGNE_DE_SOMMAIRE.search(b.texte)
         ]
-        textes.append(_assembler(gardes))
-    return textes
+        titres = [
+            b.texte
+            for b in gardes
+            if (b.titre and occurrences[b.texte.lower()] <= TITRE_REPETITIONS_MAX)
+            or (b.texte.lower() in signets and est_titre_plausible(b.texte))
+        ]
+        resultat.append(
+            PageLue(
+                _assembler([b.texte for b in gardes], set(titres)), titres if typographie else None
+            )
+        )
+    return resultat
 
 
 def charger_pdf(chemin: Path, metadonnees: dict | None = None) -> list[Document]:
     """Un `Document` par page non vide, avec `page` (numérotation du PDF, à partir de 1)."""
     pages = lire_pdf(chemin)
     documents = []
-    for numero, texte in enumerate(pages, start=1):
+    for numero, lue in enumerate(pages, start=1):
+        texte = lue.texte
         if len(texte) < PAGE_MIN_CARACTERES:
             continue
         meta = {
@@ -177,6 +298,8 @@ def charger_pdf(chemin: Path, metadonnees: dict | None = None) -> list[Document]
             "page": numero,
             "nb_pages": len(pages),
         }
+        if lue.titres is not None:
+            meta["intertitres"] = "\n".join(lue.titres)  # lu par le découpage (étape 4)
         documents.append(Document(page_content=texte, metadata=meta))
     return documents
 
