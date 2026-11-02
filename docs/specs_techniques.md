@@ -1,6 +1,6 @@
 # Spécifications techniques : agent RAG COCOACERT
 
-> Statut : **décisions D1 à D4 et D6 prises le 26 octobre 2026 (D7 et D8 le 1er novembre, D9 le 2 novembre), à présenter au directeur de mémoire.** D5 reste provisoire jusqu'aux mesures de l'étape 11.
+> Statut : **décisions D1 à D4 et D6 prises le 26 octobre 2026 (D7 et D8 le 1er novembre, D9 et D10 le 2 novembre), à présenter au directeur de mémoire.** D5 reste provisoire jusqu'aux mesures de l'étape 11.
 > Tarifs et limites relevés le 26 octobre 2026 (sources en fin de document).
 
 ## 1. Architecture retenue
@@ -225,6 +225,50 @@ Les questions « absentes du corpus » portent sur le sujet (le cacao, l'EUDR) s
 
 Temps : la recherche complète prend 0,95 s en moyenne (1,43 s au 95e centile), ce qui laisse environ 3,5 s à la génération pour tenir les 5 s du cahier des charges.
 
+### D10. Génération et garde-fous — **décidé (réglages à confirmer à l'étape 11)**
+
+Code : `rag/prompts.py` (consignes), `rag/guardrails.py` (garde-fous), `rag/chain.py` (chaîne) ; essai : `uv run python -m rag_assistant.evaluation.reponses` (résultats dans `eval/resultats/reponses_2026-11-02*`).
+
+Chaîne : recherche et reranking (D9) → refus immédiat si le meilleur score est sous 0,40 → un seul appel à Claude Sonnet 5.5 avec les 4 passages numérotés [1]…[4] (titre, organisme, année, page, section) → vérification des citations → réponse, avertissements et sources.
+
+Garde-fous en trois couches :
+
+1. **Avant le modèle** : sous le seuil, refus type sans appel à Claude (gratuit, immédiat).
+2. **Dans le prompt** : ancrage strict (aucune information extérieure aux passages, aucun produit ni dose absent des passages), citation [n] après chaque phrase, pas de décision à la place de la personne. Le modèle écrit `HORS_SUJET` ou `AUCUNE_REPONSE` quand il n'y a rien à dire ; quand l'information principale manque mais que les passages s'en approchent, la réponse commence par « Les documents ne précisent pas… », puis donne ce qui s'en approche et oriente la personne. Une dernière ligne d'étiquettes (`couverture`, `avertissement`), lue puis retirée par le code, indique la couverture et le sujet sensible.
+3. **Après le modèle** : les numéros cités qui ne correspondent à aucun passage sont retirés ; une réponse sans citation valide est remplacée par le refus type. La liste des sources est construite par le code à partir des numéros cités (deux passages de la même page deviennent une seule source) : elle ne peut pas être inventée.
+
+Avertissements de non-substitution (§13 du cahier) : traitement par un produit, conformité EUDR, certification, demande de décision. Le sujet est choisi par le modèle, qui comprend le sens de la question ; un produit chimique cité dans la réponse déclenche toujours l'avertissement « traitement ».
+
+Réglages : Claude 5.5 refuse le paramètre `temperature` (erreur 400). La profondeur de réflexion se règle avec `effort` : `low`, sans réflexion préalable (`thinking: between_tools`). Réponse de 100 mots au plus, reçue en flux pour afficher les premiers mots sans attendre la fin.
+
+Essai du 2 novembre 2026 sur 71 questions (14 hors sujet, 14 absentes du corpus, 13 demandes de décision, 30 normales réparties entre les 5 thèmes ; profil = acteur de la question), en trois versions du prompt :
+
+| Mesure | V1 | V3 (retenue) |
+| --- | --- | --- |
+| Hors sujet refusées | 14 / 14 | 14 / 14 |
+| Absentes du corpus détectées (refus ou réponse « Les documents ne précisent pas… ») | 10 / 14 | 14 / 14 |
+| Questions avec réponse refusées à tort | 1 / 43 | 1 / 43 |
+| Réponses avec au moins une source | 100 % | 100 % |
+| … dont une source attendue | 95 % | 95 % |
+| Réponses signalées partielles alors que la réponse est dans le corpus | — | 1 / 42 |
+| Avertissement présent quand il est attendu | 57 % | 86 % |
+| Avertissement non attendu | 50 % | 21 % |
+| Longueur médiane | 218 mots | 120 mots |
+| Temps total médian (moyenne ; 95e centile) | 5,55 s (7,5 ; —) | 4,15 s (4,38 ; 5,99) |
+| Délai avant le premier mot (médiane) | — | 1,98 s |
+| Coût pour 71 questions | 0,67 $ | 0,66 $ |
+
+V1 : premier prompt (réponses de 3 à 6 phrases, avertissements par mots-clés). V2, écartée : étiquettes ajoutées, mais le modèle marquait « partielle » 48 % des réponses complètes dès qu'un détail manquait, ce qui rendait la détection des questions absentes trop facile ; d'où la règle de V3 : une réponse n'est partielle que si elle est étiquetée ainsi **et** commence par « Les documents ne précisent pas ». V3 : limite à 100 mots, recherche plus rapide (la question n'est plus découpée en tokens avant l'envoi à Voyage, ce qui rechargeait à chaque fois le découpage depuis Hugging Face).
+
+Lecture des résultats :
+
+- les 12 questions absentes du corpus qui ne sont pas refusées reçoivent une réponse qui dit d'emblée que l'information manque (prix du jour, adresse, date à venir…), puis donne ce que disent les documents et oriente la personne : c'est le comportement prévu au §2.3, qui reste plus utile qu'un refus sec ;
+- la seule question refusée à tort (« Dois-je quitter ma coopérative pour une autre qui paie une meilleure prime ? ») est une demande de décision dont le meilleur score est 0,38, juste sous le seuil ;
+- 12 réponses sur 54 dépassent 5 s, surtout à cause de la rédaction (3,1 s en médiane) et de pics du réseau pendant la recherche. Avec l'affichage en flux de l'étape 9, la personne lit les premiers mots après 2 s environ. Leviers à mesurer à l'étape 11 : Claude Haiku 5.5 pour la rédaction, réponses plus courtes ;
+- les avertissements « en trop » portent surtout sur des questions de certification ou d'EUDR où un rappel reste défendable ; ils sont à juger par les relecteurs.
+
+Relecture humaine : 10 réponses sont rassemblées dans `eval/resultats/reponses_2026-11-02_16h34_a_relire.md`, avec une grille (compris, utile, longueur, mots difficiles), à faire lire par une personne non spécialiste.
+
 ## 4. Sources
 
 - Tarifs Claude : <https://platform.claude.com/docs/en/about-claude/pricing>
@@ -232,4 +276,6 @@ Temps : la recherche complète prend 0,95 s en moyenne (1,43 s au 95e centile), 
 - Limites de débit Voyage AI : <https://docs.voyageai.com/docs/rate-limits>
 - Modèles Voyage AI (dimensions, multilingue) : <https://mongodb.com/docs/voyageai/models/>
 - Rerankers Voyage AI : <https://docs.voyageai.com/docs/reranker>
+- Claude Sonnet 5.5 (paramètres refusés, réflexion) : <https://platform.claude.com/docs/en/models/sonnet-5-5/overview>
+- Paramètre `effort` : <https://platform.claude.com/docs/en/build-with-claude/effort>
 - Offre Pinecone Starter : <https://www.pinecone.io/pricing/>

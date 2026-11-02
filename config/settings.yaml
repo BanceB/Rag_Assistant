@@ -10,7 +10,9 @@ llm:
   provider: anthropic
   model: claude-sonnet-5-5        # décision D2 : rédige les réponses
   model_rapide: claude-haiku-5-5  # reformule les questions de suivi (étape 8)
-  temperature: 0.2                # bas = réponses factuelles et stables
+  # Claude 5.5 refuse le paramètre temperature (erreur 400) : on règle l'effort à la place.
+  # low = réponse rapide, sans réflexion préalable (à comparer à medium à l'étape 11)
+  effort: low
   max_tokens: 1024
 
 embeddings:

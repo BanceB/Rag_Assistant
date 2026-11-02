@@ -51,7 +51,25 @@ def creer_embeddings(settings: Settings | None = None) -> Embeddings:
         )
     from langchain_voyageai import VoyageAIEmbeddings
 
-    return VoyageAIEmbeddings(model=settings.embeddings.model, batch_size=TAILLE_LOT)
+    class EmbeddingsVoyage(VoyageAIEmbeddings):
+        """Comme VoyageAIEmbeddings, sans compter les tokens d'une question avant de l'envoyer.
+
+        La version d'origine découpe toujours le texte en tokens pour former ses lots, ce qui
+        recharge le découpage depuis Hugging Face à chaque question (jusqu'à plusieurs
+        secondes, et les avertissements « unauthenticated requests »). Une question est
+        courte : on l'envoie directement. Les documents gardent le découpage en lots.
+        """
+
+        def embed_query(self, text: str) -> list[float]:
+            return self._client.embed(
+                [text],
+                model=self.model,
+                input_type="query",
+                truncation=self.truncation,
+                output_dimension=self.output_dimension,
+            ).embeddings[0]
+
+    return EmbeddingsVoyage(model=settings.embeddings.model, batch_size=TAILLE_LOT)
 
 
 def ouvrir_base(

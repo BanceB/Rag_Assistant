@@ -35,8 +35,8 @@ def test_base_vectorielle_inconnue_refusee():
         _valider(mauvais)
 
 
-def test_temperature_hors_bornes_refusee():
+def test_effort_inconnu_refuse():
     s = load_settings()
-    mauvais = replace(s, llm=replace(s.llm, temperature=1.5))
+    mauvais = replace(s, llm=replace(s.llm, effort="extreme"))
     with pytest.raises(ValueError):
         _valider(mauvais)

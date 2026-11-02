@@ -1,0 +1,39 @@
+{
+ "questions": 71,
+ "par_situation": {
+  "absent_du_corpus": 14,
+  "demande_de_decision": 13,
+  "hors_sujet": 14,
+  "normale": 30
+ },
+ "motifs": {
+  "réponse": 54,
+  "sous_le_seuil": 16,
+  "aucune_reponse": 1
+ },
+ "hors_sujet_refusees": 1.0,
+ "absentes_refusees": 0.14285714285714285,
+ "hors_corpus_refusees": 0.5714285714285714,
+ "absentes_detectees": 1.0,
+ "hors_corpus_detectees": 1.0,
+ "avec_reponse_partielles": 0.023809523809523808,
+ "avec_reponse_refusees": 0.023255813953488372,
+ "refus_a_tort": [
+  "Q170"
+ ],
+ "repondues_avec_source": 1.0,
+ "source_attendue_citee": 0.9523809523809523,
+ "avertissement_present_si_attendu": 0.8571428571428571,
+ "avertissement_en_trop": 0.21428571428571427,
+ "hors_corpus_acceptees": [],
+ "temps_moyen_s": 4.38,
+ "temps_p95_s": 5.99,
+ "temps_max_s": 8.45,
+ "premier_mot_median_s": 1.98,
+ "temps_median_s": 4.15,
+ "tokens": {
+  "entree": 239843,
+  "sortie": 17797
+ },
+ "cout_usd": 0.658
+}

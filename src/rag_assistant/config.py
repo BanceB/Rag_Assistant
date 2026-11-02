@@ -28,6 +28,8 @@ SETTINGS_PATH = PROJECT_ROOT / "config" / "settings.yaml"
 SECRETS_COMMUNS = ("ANTHROPIC_API_KEY", "VOYAGE_API_KEY")
 # Clés supplémentaires selon la base vectorielle choisie.
 SECRETS_PAR_BASE = {"chroma": (), "pinecone": ("PINECONE_API_KEY", "INDEX_NAME")}
+# Niveaux d'effort acceptés avec la réflexion « between_tools » (pas de réflexion préalable)
+EFFORTS = ("low", "medium", "high")
 
 
 @dataclass(frozen=True)
@@ -35,7 +37,7 @@ class LLMSettings:
     provider: str
     model: str
     model_rapide: str
-    temperature: float
+    effort: str  # "low", "medium" ou "high" : profondeur de réflexion, latence et coût
     max_tokens: int
 
 
@@ -101,8 +103,8 @@ def _valider(s: Settings) -> None:
     """Refuse les réglages incohérents dès le démarrage plutôt qu'en plein traitement."""
     if s.chunking.chunk_overlap >= s.chunking.chunk_size:
         raise ValueError("chunking.chunk_overlap doit être plus petit que chunking.chunk_size")
-    if not 0 <= s.llm.temperature <= 1:
-        raise ValueError("llm.temperature doit être comprise entre 0 et 1")
+    if s.llm.effort not in EFFORTS:
+        raise ValueError(f"llm.effort doit valoir {', '.join(EFFORTS)}")
     if s.retrieval.k > s.retrieval.fetch_k:
         raise ValueError("retrieval.k ne peut pas dépasser retrieval.fetch_k")
     if s.vectorstore.provider not in SECRETS_PAR_BASE:
