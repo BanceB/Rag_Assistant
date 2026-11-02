@@ -37,7 +37,8 @@ log = logging.getLogger(__name__)
 
 PAGE_MIN_CARACTERES = 30  # en dessous : page de couverture, photo, page blanche
 MARGE_HAUTE_BASSE = 0.12  # part de la hauteur de page où se trouvent en-têtes et pieds de page
-SEUIL_MARGE = 0.5  # bloc répété dans la marge sur au moins 50 % des pages : en-tête ou pied
+SEUIL_MARGE = 0.25  # bloc répété dans la marge sur au moins 25 % des pages : en-tête ou pied
+# (25 % et non 50 % : un document peut réunir plusieurs parties qui ont chacune leur en-tête)
 SEUIL_PARTOUT = 0.8  # bloc court répété sur au moins 80 % des pages, où qu'il soit
 TITRES_A_GARDER = re.compile(r"(article|section|chapitre|annexe|partie)\b")
 BRUIT = {"[no notes on this page]"}  # annotations d'export laissées dans certains PDF
@@ -102,7 +103,7 @@ def blocs_repetes(pages: list[list[tuple[str, bool]]]) -> set[str]:
     """Repère les en-têtes et pieds de page : les blocs courts répétés sur la plupart des pages.
 
     `pages` : pour chaque page, la liste des blocs (texte, situé_dans_la_marge).
-    Un bloc est retiré s'il revient dans la marge haute ou basse d'au moins la moitié des
+    Un bloc est retiré s'il revient dans la marge haute ou basse d'au moins un quart des
     pages (les chiffres pouvant changer : « Page 3 de 9 »), ou s'il revient à l'identique,
     n'importe où, sur au moins 80 % des pages. Les intitulés d'articles, de sections ou
     d'annexes ne sont jamais retirés. Renvoie les blocs sous leur forme comparable.
@@ -204,21 +205,59 @@ def _blocs_de_page(contenu: dict, taille_courante: float) -> list[_Bloc]:
                     or min(s["size"] for s in spans) >= taille_courante + TITRE_ECART_TAILLE
                 )
                 lignes.append(("".join(s["text"] for s in ligne["spans"]), typo))
-        tete = 0
-        while tete < len(lignes) and lignes[tete][1]:
-            tete += 1
-        if 0 < tete <= TITRE_LIGNES_MAX:
-            titre = nettoyer_texte("\n".join(t for t, _ in lignes[:tete]))
-            reste = nettoyer_texte("\n".join(t for t, _ in lignes[tete:]))
-            if est_titre_plausible(titre):
-                blocs.append(_Bloc(titre, marge, titre=True))
-                if reste:
-                    blocs.append(_Bloc(reste, marge))
-                continue
-        texte = nettoyer_texte("\n".join(t for t, _ in lignes))
-        if texte:
-            blocs.append(_Bloc(texte, marge))
+        blocs.extend(_segmenter(lignes, marge))
     return blocs
+
+
+NUMERO_DE_TITRE = re.compile(r"\d{1,2}(\.\d{1,2}){0,4}\.?(\s|$)")
+
+
+def _segmenter(lignes: list[tuple[str, bool]], marge: bool) -> list[_Bloc]:
+    """Sépare les intertitres du texte courant à l'intérieur d'un bloc.
+
+    Les lignes typographiées consécutives sont découpées en intertitres à chaque numéro
+    (« 13 / Exigences de traçabilité / 13.1 / Exigences générales » donne deux titres).
+    En tête de bloc, tout intertitre plausible est retenu ; au milieu d'un bloc, seulement
+    s'il est numéroté, pour ne pas prendre une phrase en gras pour un titre.
+    """
+    resultat: list[_Bloc] = []
+    courant: list[str] = []  # lignes de texte courant en attente
+
+    def vider() -> None:
+        texte = nettoyer_texte("\n".join(courant))
+        if texte:
+            resultat.append(_Bloc(texte, marge))
+        courant.clear()
+
+    i = 0
+    while i < len(lignes):
+        if not lignes[i][1]:
+            courant.append(lignes[i][0])
+            i += 1
+            continue
+        debut = i
+        while i < len(lignes) and lignes[i][1]:
+            i += 1
+        candidats: list[list[str]] = []
+        for texte, _ in lignes[debut:i]:
+            if not candidats or NUMERO_DE_TITRE.match(texte.strip()):
+                candidats.append([texte])
+            else:
+                candidats[-1].append(texte)
+        for morceau in candidats:
+            titre = nettoyer_texte("\n".join(morceau))
+            en_tete_de_bloc = debut == 0 and not resultat and not courant
+            if (
+                len(morceau) <= TITRE_LIGNES_MAX
+                and est_titre_plausible(titre)
+                and (en_tete_de_bloc or NUMERO_DE_TITRE.match(titre))
+            ):
+                vider()
+                resultat.append(_Bloc(titre, marge, titre=True))
+            else:
+                courant.extend(morceau)
+    vider()
+    return resultat
 
 
 def _taille_courante(contenus: list[dict]) -> tuple[float, str]:
@@ -267,6 +306,7 @@ def lire_pdf(chemin: Path) -> list[PageLue]:
             if _cle(b.texte) not in repetes
             and b.texte.lower() not in repetes
             and b.texte not in BRUIT
+            and not (b.dans_marge and b.texte.startswith("©"))  # mention de droits en pied de page
             and not re.fullmatch(r"[\d\s\-–/|.]*", b.texte)  # numéro de page seul
             and not LIGNE_DE_SOMMAIRE.search(b.texte)
         ]

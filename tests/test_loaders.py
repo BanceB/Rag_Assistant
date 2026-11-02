@@ -12,6 +12,7 @@ from rag_assistant.ingestion.loaders import (
     CHAMPS_CATALOGUE,
     LIGNE_DE_SOMMAIRE,
     _assembler,
+    _segmenter,
     blocs_repetes,
     charger_corpus,
     charger_pdf,
@@ -54,6 +55,29 @@ def test_nettoyer_texte_remplace_les_puces_de_police_symbole():
 )
 def test_est_titre_plausible(texte, attendu):
     assert est_titre_plausible(texte) is attendu
+
+
+def test_segmenter_separe_les_intertitres_numerotes_au_milieu_d_un_bloc():
+    lignes = [
+        ("L'acteur doit conserver des informations documentées.", False),
+        ("13", True),
+        ("Exigences de traçabilité", True),
+        ("13.1", True),
+        ("Exigences générales", True),
+        ("Le système doit inclure les objectifs.", False),
+        ("Une phrase en gras au milieu", True),  # non numérotée : reste dans le texte
+        ("du paragraphe.", False),
+    ]
+    blocs = [(b.texte, b.titre) for b in _segmenter(lignes, marge=False)]
+    assert blocs == [
+        ("L'acteur doit conserver des informations documentées.", False),
+        ("13 Exigences de traçabilité", True),
+        ("13.1 Exigences générales", True),
+        (
+            "Le système doit inclure les objectifs. Une phrase en gras au milieu du paragraphe.",
+            False,
+        ),
+    ]
 
 
 def test_lignes_de_sommaire_reconnues():

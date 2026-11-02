@@ -3,8 +3,8 @@
 Règles :
 - on découpe page par page : un chunk ne chevauche jamais deux pages, ce qui permet de citer
   « document, p. 12 » sans ambiguïté ;
-- chaque chunk porte une `section` : le premier intertitre qu'il contient (« Article 9 »,
-  « 2.2.6 Semis »…), sinon le dernier intertitre rencontré avant lui dans le document.
+- chaque chunk porte une `section` : le premier intertitre de sa première moitié
+  (« Article 9 », « 2.2.6 Semis »…), sinon la section en cours à son début.
   Les intertitres sont ceux que le chargement a repérés par la typographie (métadonnée
   `intertitres`) ; pour une page sans typographie exploitable (OCR), on se replie sur la
   numérotation (« 3.10. Qui est une PME ») ;
@@ -171,9 +171,16 @@ def decouper(
             for b in fusionner_petits(decoupeur.split_text(m), intertitres=intertitres_page)
         ]
         for index, bout in enumerate(bouts):
-            # section : le premier intertitre du chunk, sinon le dernier vu avant lui
-            sections = [p.strip() for p in bout.split("\n\n") if est_section(p, intertitres_page)]
-            section = sections[0] if sections else section_par_doc.get(doc_id, "")
+            # section : le premier intertitre de la première moitié du chunk (le passage
+            # en parle surtout), sinon celle en cours au début du chunk
+            reperes_chunk, position = [], 0
+            for paragraphe in bout.split("\n\n"):
+                if est_section(paragraphe, intertitres_page):
+                    reperes_chunk.append((position, paragraphe.strip()))
+                position += len(paragraphe) + 2
+            precoces = [titre for pos, titre in reperes_chunk if pos <= len(bout) / 2]
+            section = precoces[0] if precoces else section_par_doc.get(doc_id, "")
+            sections = [titre for _, titre in reperes_chunk]
             if sections:
                 section_par_doc[doc_id] = sections[-1]
             meta_chunk = {

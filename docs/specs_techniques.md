@@ -128,13 +128,13 @@ Ordre de grandeur : 100 documents d'environ 20 pages font à peu près 1,2 milli
 
 Méthode (`ingestion/chunking.py`) : `RecursiveCharacterTextSplitter` appliqué page par page (un chunk ne chevauche jamais deux pages, pour citer « document, p. 12 »). Dans les règlements, coupure préalable à chaque « Article N ». Les morceaux de moins de 100 caractères (intertitre seul, légende) sont rattachés à leur voisin. Chaque chunk commence par un en-tête contextuel (titre, organisme, année, section) et porte `section`, `chunk_index` et un identifiant stable `chunk_id` (`MAL-001-p003-c01`). Les lignes de sommaire (points de suite et numéro de page) sont retirées au chargement.
 
-Mesure du 1er novembre 2026 sur le corpus (46 documents, 1 402 pages avec texte), refaite après le repérage typographique des intertitres et l'abrègement des en-têtes : « preuves intactes » = part des 487 extraits de preuve du jeu d'évaluation contenus en entier dans un même chunk ; tokens estimés à 4 caractères par token, en-têtes compris.
+Mesure du 2 novembre 2026 sur le corpus (46 documents, 1 399 pages avec texte), refaite après le repérage typographique des intertitres, l'abrègement des en-têtes et le retrait des en-têtes de l'ARS 1000 : « preuves intactes » = part des 487 extraits de preuve du jeu d'évaluation contenus en entier dans un même chunk ; tokens estimés à 4 caractères par token, en-têtes compris.
 
 | Réglage (caractères) | Chunks | Taille moyenne | Chunks < 100 car. | Tokens estimés | Preuves intactes |
 | --- | --- | --- | --- | --- | --- |
-| 500 / 50 | 9 456 | 355 | 30 | 1,23 M | 99,8 % |
-| 1000 / 150 | 4 868 | 707 | 22 | 1,06 M | 100 % |
-| 2000 / 200 | 2 603 | 1 306 | 22 | 0,96 M | 100 % |
+| 500 / 50 | 9 420 | 355 | 31 | 1,22 M | 99,8 % |
+| 1000 / 150 | 4 843 | 708 | 21 | 1,05 M | 100 % |
+| 2000 / 200 | 2 588 | 1 308 | 20 | 0,95 M | 100 % |
 
 Coût de vectorisation avec `voyage-4` : environ 1 million de tokens par indexation complète, soit quelques centimes, très en dessous des 200 millions offerts. Le critère de coût ne départage donc pas les réglages.
 
@@ -161,7 +161,8 @@ Règles de chargement (`ingestion/loaders.py`) :
 - seuls les documents au statut `valide` et ayant un fichier sont chargés. Les pages web sont lues à partir d'une copie PDF datée rangée dans `data/corpus/`, pour que le texte indexé ne change pas d'une semaine à l'autre ; il n'y a donc pas de lecteur web ni Word ;
 - nettoyage : mots coupés en fin de ligne recollés, lignes d'un même paragraphe réunies, en-têtes et pieds de page répétés retirés, numéros de page seuls retirés. Les intitulés d'articles et de sections sont toujours conservés ;
 - une page web enregistrée avec l'imprimante « Microsoft Print to PDF » ne contient aucun texte (les lettres deviennent des dessins) : il faut choisir « Enregistrer au format PDF » dans le navigateur. Pour les captures du 1er novembre 2026, deux méthodes de rattrapage ont été utilisées. EUDR-003 et EUDR-009 (pages en français, bien lisibles) ont reçu une couche de texte par OCR (Tesseract 5, 300 ppp), sans changer leur aspect. EUDR-007, CERT-003 et IND-005 étaient en partie traduites par le navigateur ou contenaient un tableau mal lu par l'OCR : elles ont été remplacées par une copie texte de la page d'origine, en anglais, relevée dans le navigateur intégré et vérifiée par empreinte (SHA-256) contre la page ; les images et graphiques ne sont pas repris ;
-- intertitres (ajout du 1er novembre 2026, après les premières recherches de l'étape 5) : une ligne en tête de bloc, en gras ou plus grande d'au moins 1,5 point que le texte courant, est un intertitre si elle ressemble à un titre (pas de point final, pas une légende, un crédit photo, une adresse, une ligne de sommaire ou un mot en capitales non numéroté) et ne revient pas plus de deux fois dans le document (sinon c'est un en-tête de tableau). Les titres des signets du PDF comptent aussi. Pour les pages passées à l'OCR, sans typographie fiable, le découpage se replie sur la numérotation (« 3.10. Qui est une PME »). Avant ce changement, une ligne de tableau numérotée (« 16. Application d'engrais Entretien ») servait de section à 95 chunks de l'ARS 1000 ; la section de chaque chunk suit maintenant les vrais titres (« 11 Principes de traçabilité ») ;
+- intertitres (ajout du 1er novembre 2026, après les premières recherches de l'étape 5) : une ligne en gras ou plus grande d'au moins 1,5 point que le texte courant est un intertitre si elle ouvre un bloc, ou si elle est numérotée au milieu d'un bloc (« 13 Exigences de traçabilité », « 13.1 Exigences générales »), et si elle ressemble à un titre (pas de point final, pas une légende, un crédit photo, une adresse, une ligne de sommaire ou un mot en capitales non numéroté) et ne revient pas plus de deux fois dans le document (sinon c'est un en-tête de tableau). Les titres des signets du PDF comptent aussi. Pour les pages passées à l'OCR, sans typographie fiable, le découpage se replie sur la numérotation (« 3.10. Qui est une PME »). Avant ce changement, une ligne de tableau numérotée (« 16. Application d'engrais Entretien ») servait de section à 95 chunks de l'ARS 1000 ; la section de chaque chunk suit maintenant les vrais titres (« 11 Principes de traçabilité ») : c'est le premier intertitre de la première moitié du chunk, sinon la section en cours à son début ;
+- en-têtes et pieds de page : un bloc est retiré s'il revient dans la marge haute ou basse d'au moins un quart des pages (et non la moitié : l'ARS 1000 réunit trois parties qui ont chacune leur en-tête « ARS 1000-1:2021 ») ; une mention « © … » en marge est toujours retirée ;
 - les puces des polices Symbol et Wingdings (caractères à usage privé) deviennent « • » ;
 - les pages de moins de 30 caractères (couvertures, photos) sont ignorées : 27 pages sur 1 311 ;
 - un fichier illisible est noté dans le rapport sans arrêter le chargement.
@@ -182,7 +183,7 @@ Code : `ingestion/indexer.py` ; commande : `uv run python -m rag_assistant.inges
 - **Suppression d'un document** : `--supprimer DOC_ID` retire tous ses chunks (préparation de la page d'administration, F7).
 - Télémétrie anonyme de Chroma désactivée : la base reste entièrement sur le poste.
 
-Volume au réglage 2000/200 : 46 documents, 2 603 chunks, 3,9 millions de caractères, soit environ un million de tokens, vectorisés en une quarantaine de lots.
+Volume au réglage 2000/200 : 46 documents, 2 588 chunks, 3,9 millions de caractères, soit environ un million de tokens, vectorisés en une quarantaine de lots.
 
 Vérification : `tests/test_indexer.py` (faux modèle d'embedding, sans réseau) contrôle l'absence de doublons, la mise à jour d'un chunk modifié, le retrait d'un chunk disparu, la suppression d'un document, la reprise après un quota dépassé et, quand les PDF sont présents, l'idempotence sur tout le corpus.
 
