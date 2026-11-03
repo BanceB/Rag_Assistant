@@ -1,0 +1,66 @@
+{
+ "_description": "Étape 8. « completes » : la question de suivi telle qu'une personne l'aurait posée en entier (référence pour la recherche). « dialogues » : 5 conversations de 3 tours, passées dans la chaîne complète.",
+ "completes": {
+  "Q049": "Comment le swollen shoot passe-t-il d'un cacaoyer à l'autre ?",
+  "Q050": "Comment empêcher que la pourriture brune des cabosses revienne ?",
+  "Q051": "Qu'est-ce que je dois porter pendant le traitement contre les mirides ?",
+  "Q052": "Pour les toiles blanches comme des toiles d'araignée sur la fourche de mes jeunes cacaoyers, je coupe la branche à combien de centimètres de la partie malade ?",
+  "Q106": "Après la fermentation des fèves de cacao, je les sèche pendant combien de temps ?",
+  "Q107": "À quel moment de l'année faut-il mettre l'engrais sur une cacaoyère adulte dans le Centre ?",
+  "Q108": "Combien de jours peut-on garder les fèves enrobées avant de les semer ?",
+  "Q109": "Quelle surface de pépinière sur bâche faut-il pour planter un hectare de cacaoyers ?",
+  "Q131": "Pour l'EUDR, quelles coordonnées GPS faut-il fournir si ma parcelle fait plus de 4 hectares ?",
+  "Q132": "Quand l'EUDR commence-t-il à s'appliquer ?",
+  "Q154": "Dans le SSRTE, un agent doit passer dans chaque ménage tous les combien ?",
+  "Q155": "Qui paie la prime pour le cacao certifié ARS 1000 ?",
+  "Q258": "À partir de quelle densité une vieille cacaoyère vaut-elle encore la peine d'être fertilisée ?",
+  "Q259": "Comment savoir que le compost fait avec les coques de cabosses est prêt ?"
+ },
+ "dialogues": [
+  {
+   "id": "D1",
+   "profil": "agriculteur",
+   "tours": [
+    "Qu'est-ce que l'EUDR ?",
+    "Quelles preuves dois-je fournir ?",
+    "Et si ma parcelle a été plantée en 2019 ?"
+   ]
+  },
+  {
+   "id": "D2",
+   "profil": "agriculteur",
+   "tours": [
+    "Mes jeunes feuilles ont des bandes rouges le long des nervures, c'est quoi ?",
+    "Comment ça se transmet ?",
+    "Et qu'est-ce que je dois faire avec les arbres malades ?"
+   ]
+  },
+  {
+   "id": "D3",
+   "profil": "agriculteur",
+   "tours": [
+    "Comment bien fermenter mes fèves de cacao ?",
+    "Ça dure combien de jours ?",
+    "Et ensuite, comment je les sèche ?"
+   ]
+  },
+  {
+   "id": "D4",
+   "profil": "cooperative",
+   "tours": [
+    "C'est quoi la norme ARS 1000 ?",
+    "Quels sont les niveaux de certification ?",
+    "Et le premier audit, c'est quand ?"
+   ]
+  },
+  {
+   "id": "D5",
+   "profil": "cooperative",
+   "tours": [
+    "C'est quoi le SSRTE ?",
+    "Qui fait les visites dans les ménages ?",
+    "Et si on trouve un enfant qui travaille, on fait quoi ?"
+   ]
+  }
+ ]
+}

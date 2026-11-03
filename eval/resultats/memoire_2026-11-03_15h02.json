@@ -1,0 +1,837 @@
+{
+ "resume": {
+  "questions": 14,
+  "seule": {
+   "rappel@4": 0.7857142857142857,
+   "sous_le_seuil": 0,
+   "passages_communs_avec_complete": 0.5357142857142857
+  },
+  "reformulee": {
+   "rappel@4": 1.0,
+   "sous_le_seuil": 0,
+   "passages_communs_avec_complete": 0.8571428571428571
+  },
+  "complete": {
+   "rappel@4": 1.0,
+   "sous_le_seuil": 0
+  },
+  "duree_reformulation_mediane_s": 1.713
+ },
+ "suivis": [
+  {
+   "id": "Q049",
+   "attendus": [
+    "MAL-001"
+   ],
+   "duree_reformulation": 2.321,
+   "seule": {
+    "texte": "Et comment ça passe d'un arbre à l'autre ?",
+    "chunks": [
+     "BPA-006-p033-c00",
+     "BPA-002-p084-c00",
+     "MAL-004-p001-c01",
+     "BPA-006-p075-c01"
+    ],
+    "docs": [
+     "BPA-006",
+     "BPA-002",
+     "MAL-004",
+     "BPA-006"
+    ],
+    "meilleur_score": 0.6452,
+    "pertinent": true
+   },
+   "reformulee": {
+    "texte": "Comment la maladie des bandes rouges des jeunes feuilles de cacaoyer se transmet-elle d'un arbre à l'autre ?",
+    "chunks": [
+     "BPA-002-p084-c00",
+     "BPA-006-p057-c00",
+     "MAL-001-p002-c00",
+     "BPA-006-p033-c00"
+    ],
+    "docs": [
+     "BPA-002",
+     "BPA-006",
+     "MAL-001",
+     "BPA-006"
+    ],
+    "meilleur_score": 0.8244,
+    "pertinent": true
+   },
+   "complete": {
+    "texte": "Comment le swollen shoot passe-t-il d'un cacaoyer à l'autre ?",
+    "chunks": [
+     "MAL-001-p002-c00",
+     "BPA-002-p087-c00",
+     "MAL-001-p001-c00",
+     "BPA-006-p033-c00"
+    ],
+    "docs": [
+     "MAL-001",
+     "BPA-002",
+     "MAL-001",
+     "BPA-006"
+    ],
+    "meilleur_score": 0.8574,
+    "pertinent": true
+   }
+  },
+  {
+   "id": "Q050",
+   "attendus": [
+    "MAL-002"
+   ],
+   "duree_reformulation": 1.777,
+   "seule": {
+    "texte": "Et comment j'empêche que ça revienne ?",
+    "chunks": [
+     "CERT-007-p058-c02",
+     "CERT-007-p038-c00",
+     "CERT-007-p056-c02",
+     "CERT-007-p058-c01"
+    ],
+    "docs": [
+     "CERT-007",
+     "CERT-007",
+     "CERT-007",
+     "CERT-007"
+    ],
+    "meilleur_score": 0.5383,
+    "pertinent": true
+   },
+   "reformulee": {
+    "texte": "Comment empêcher que la pourriture brune des cabosses avec duvet blanc et odeur de poisson revienne ?",
+    "chunks": [
+     "MAL-002-p002-c00",
+     "BPA-002-p095-c00",
+     "BPA-002-p050-c01",
+     "MAL-002-p001-c00"
+    ],
+    "docs": [
+     "MAL-002",
+     "BPA-002",
+     "BPA-002",
+     "MAL-002"
+    ],
+    "meilleur_score": 0.8051,
+    "pertinent": true
+   },
+   "complete": {
+    "texte": "Comment empêcher que la pourriture brune des cabosses revienne ?",
+    "chunks": [
+     "MAL-002-p002-c00",
+     "BPA-005-p040-c00",
+     "BPA-002-p095-c00",
+     "BPA-006-p022-c00"
+    ],
+    "docs": [
+     "MAL-002",
+     "BPA-005",
+     "BPA-002",
+     "BPA-006"
+    ],
+    "meilleur_score": 0.8864,
+    "pertinent": true
+   }
+  },
+  {
+   "id": "Q051",
+   "attendus": [
+    "MAL-003"
+   ],
+   "duree_reformulation": 1.479,
+   "seule": {
+    "texte": "Et qu'est-ce que je dois porter pendant le traitement ?",
+    "chunks": [
+     "MAL-003-p004-c01",
+     "BPA-002-p098-c00",
+     "BPA-005-p048-c00",
+     "BPA-002-p100-c00"
+    ],
+    "docs": [
+     "MAL-003",
+     "BPA-002",
+     "BPA-005",
+     "BPA-002"
+    ],
+    "meilleur_score": 0.7434,
+    "pertinent": true
+   },
+   "reformulee": {
+    "texte": "Qu'est-ce que je dois porter pendant le traitement contre les mirides ?",
+    "chunks": [
+     "MAL-003-p004-c01",
+     "BPA-006-p107-c02",
+     "MAL-005-p002-c00",
+     "BPA-005-p048-c00"
+    ],
+    "docs": [
+     "MAL-003",
+     "BPA-006",
+     "MAL-005",
+     "BPA-005"
+    ],
+    "meilleur_score": 0.6415,
+    "pertinent": true
+   },
+   "complete": {
+    "texte": "Qu'est-ce que je dois porter pendant le traitement contre les mirides ?",
+    "chunks": [
+     "MAL-003-p004-c01",
+     "BPA-006-p107-c02",
+     "MAL-005-p002-c00",
+     "BPA-005-p048-c00"
+    ],
+    "docs": [
+     "MAL-003",
+     "BPA-006",
+     "MAL-005",
+     "BPA-005"
+    ],
+    "meilleur_score": 0.6415,
+    "pertinent": true
+   }
+  },
+  {
+   "id": "Q052",
+   "attendus": [
+    "MAL-009"
+   ],
+   "duree_reformulation": 1.322,
+   "seule": {
+    "texte": "Je coupe la branche à combien de centimètres de la partie malade ?",
+    "chunks": [
+     "BPA-006-p063-c00",
+     "MAL-004-p002-c00",
+     "MAL-009-p002-c00",
+     "BPA-006-p078-c00"
+    ],
+    "docs": [
+     "BPA-006",
+     "MAL-004",
+     "MAL-009",
+     "BPA-006"
+    ],
+    "meilleur_score": 0.6998,
+    "pertinent": true
+   },
+   "reformulee": {
+    "texte": "Pour couper une branche de cacaoyer atteinte par les toiles blanches sur la fourche, à combien de centimètres de la partie malade faut-il couper ?",
+    "chunks": [
+     "BPA-006-p063-c00",
+     "BPA-006-p058-c00",
+     "MAL-009-p002-c00",
+     "MAL-001-p003-c00"
+    ],
+    "docs": [
+     "BPA-006",
+     "BPA-006",
+     "MAL-009",
+     "MAL-001"
+    ],
+    "meilleur_score": 0.6851,
+    "pertinent": true
+   },
+   "complete": {
+    "texte": "Pour les toiles blanches comme des toiles d'araignée sur la fourche de mes jeunes cacaoyers, je coupe la branche à combien de centimètres de la partie malade ?",
+    "chunks": [
+     "BPA-006-p063-c00",
+     "BPA-006-p058-c00",
+     "MAL-009-p001-c00",
+     "BPA-006-p063-c01"
+    ],
+    "docs": [
+     "BPA-006",
+     "BPA-006",
+     "MAL-009",
+     "BPA-006"
+    ],
+    "meilleur_score": 0.7003,
+    "pertinent": true
+   }
+  },
+  {
+   "id": "Q106",
+   "attendus": [
+    "BPA-012",
+    "BPA-005"
+   ],
+   "duree_reformulation": 2.688,
+   "seule": {
+    "texte": "Et après la fermentation, je les sèche pendant combien de temps ?",
+    "chunks": [
+     "BPA-012-p001-c01",
+     "BPA-002-p111-c00",
+     "BPA-006-p017-c00",
+     "BPA-007-p004-c00"
+    ],
+    "docs": [
+     "BPA-012",
+     "BPA-002",
+     "BPA-006",
+     "BPA-007"
+    ],
+    "meilleur_score": 0.9054,
+    "pertinent": true
+   },
+   "reformulee": {
+    "texte": "Pendant combien de temps faut-il sécher les fèves de cacao après la fermentation ?",
+    "chunks": [
+     "BPA-012-p001-c01",
+     "BPA-002-p111-c00",
+     "BPA-006-p017-c00",
+     "BPA-012-p002-c01"
+    ],
+    "docs": [
+     "BPA-012",
+     "BPA-002",
+     "BPA-006",
+     "BPA-012"
+    ],
+    "meilleur_score": 0.9568,
+    "pertinent": true
+   },
+   "complete": {
+    "texte": "Après la fermentation des fèves de cacao, je les sèche pendant combien de temps ?",
+    "chunks": [
+     "BPA-012-p001-c01",
+     "BPA-002-p111-c00",
+     "BPA-012-p002-c01",
+     "BPA-006-p017-c00"
+    ],
+    "docs": [
+     "BPA-012",
+     "BPA-002",
+     "BPA-012",
+     "BPA-006"
+    ],
+    "meilleur_score": 0.9538,
+    "pertinent": true
+   }
+  },
+  {
+   "id": "Q107",
+   "attendus": [
+    "BPA-005",
+    "BPA-010"
+   ],
+   "duree_reformulation": 1.813,
+   "seule": {
+    "texte": "Et à quel moment de l'année je le mets ?",
+    "chunks": [
+     "BPA-005-p031-c00",
+     "BPA-002-p068-c00",
+     "BPA-002-p032-c00",
+     "BPA-002-p065-c00"
+    ],
+    "docs": [
+     "BPA-005",
+     "BPA-002",
+     "BPA-002",
+     "BPA-002"
+    ],
+    "meilleur_score": 0.6362,
+    "pertinent": true
+   },
+   "reformulee": {
+    "texte": "À quel moment de l'année faut-il appliquer l'engrais par pied pour une cacaoyère adulte dans le Centre ?",
+    "chunks": [
+     "BPA-010-p001-c00",
+     "BPA-005-p032-c00",
+     "BPA-010-p001-c01",
+     "BPA-005-p033-c00"
+    ],
+    "docs": [
+     "BPA-010",
+     "BPA-005",
+     "BPA-010",
+     "BPA-005"
+    ],
+    "meilleur_score": 0.8839,
+    "pertinent": true
+   },
+   "complete": {
+    "texte": "À quel moment de l'année faut-il mettre l'engrais sur une cacaoyère adulte dans le Centre ?",
+    "chunks": [
+     "BPA-010-p001-c00",
+     "BPA-010-p001-c01",
+     "BPA-005-p031-c00",
+     "BPA-005-p033-c00"
+    ],
+    "docs": [
+     "BPA-010",
+     "BPA-010",
+     "BPA-005",
+     "BPA-005"
+    ],
+    "meilleur_score": 0.8827,
+    "pertinent": true
+   }
+  },
+  {
+   "id": "Q108",
+   "attendus": [
+    "BPA-008"
+   ],
+   "duree_reformulation": 2.556,
+   "seule": {
+    "texte": "Et je peux les garder combien de jours avant de semer ?",
+    "chunks": [
+     "BPA-008-p001-c00",
+     "BPA-002-p022-c01",
+     "BPA-002-p024-c00",
+     "BPA-008-p001-c01"
+    ],
+    "docs": [
+     "BPA-008",
+     "BPA-002",
+     "BPA-002",
+     "BPA-008"
+    ],
+    "meilleur_score": 0.7368,
+    "pertinent": true
+   },
+   "reformulee": {
+    "texte": "Combien de jours peut-on garder des fèves enrobées avant de les semer ?",
+    "chunks": [
+     "BPA-008-p001-c00",
+     "BPA-002-p022-c01",
+     "BPA-008-p001-c01",
+     "BPA-002-p024-c00"
+    ],
+    "docs": [
+     "BPA-008",
+     "BPA-002",
+     "BPA-008",
+     "BPA-002"
+    ],
+    "meilleur_score": 0.8798,
+    "pertinent": true
+   },
+   "complete": {
+    "texte": "Combien de jours peut-on garder les fèves enrobées avant de les semer ?",
+    "chunks": [
+     "BPA-008-p001-c00",
+     "BPA-002-p022-c01",
+     "BPA-008-p001-c01",
+     "BPA-002-p024-c00"
+    ],
+    "docs": [
+     "BPA-008",
+     "BPA-002",
+     "BPA-008",
+     "BPA-002"
+    ],
+    "meilleur_score": 0.8813,
+    "pertinent": true
+   }
+  },
+  {
+   "id": "Q109",
+   "attendus": [
+    "BPA-009"
+   ],
+   "duree_reformulation": 1.346,
+   "seule": {
+    "texte": "Et quelle surface faut-il pour planter un hectare ?",
+    "chunks": [
+     "BPA-002-p023-c00",
+     "BPA-009-p001-c01",
+     "BPA-007-p001-c00",
+     "BPA-007-p001-c01"
+    ],
+    "docs": [
+     "BPA-002",
+     "BPA-009",
+     "BPA-007",
+     "BPA-007"
+    ],
+    "meilleur_score": 0.7442,
+    "pertinent": true
+   },
+   "reformulee": {
+    "texte": "Quelle surface de pépinière sur bâche faut-il pour planter un hectare de cacaoyers ?",
+    "chunks": [
+     "BPA-009-p001-c00",
+     "BPA-002-p023-c00",
+     "BPA-009-p001-c01",
+     "BPA-007-p001-c00"
+    ],
+    "docs": [
+     "BPA-009",
+     "BPA-002",
+     "BPA-009",
+     "BPA-007"
+    ],
+    "meilleur_score": 0.8974,
+    "pertinent": true
+   },
+   "complete": {
+    "texte": "Quelle surface de pépinière sur bâche faut-il pour planter un hectare de cacaoyers ?",
+    "chunks": [
+     "BPA-009-p001-c00",
+     "BPA-002-p023-c00",
+     "BPA-009-p001-c01",
+     "BPA-007-p001-c00"
+    ],
+    "docs": [
+     "BPA-009",
+     "BPA-002",
+     "BPA-009",
+     "BPA-007"
+    ],
+    "meilleur_score": 0.8974,
+    "pertinent": true
+   }
+  },
+  {
+   "id": "Q131",
+   "attendus": [
+    "EUDR-001"
+   ],
+   "duree_reformulation": 1.393,
+   "seule": {
+    "texte": "Et si ma parcelle fait plus de 4 hectares ?",
+    "chunks": [
+     "EUDR-009-p015-c00",
+     "EUDR-009-p020-c01",
+     "EUDR-001-p016-c02",
+     "EUDR-009-p017-c01"
+    ],
+    "docs": [
+     "EUDR-009",
+     "EUDR-009",
+     "EUDR-001",
+     "EUDR-009"
+    ],
+    "meilleur_score": 0.7562,
+    "pertinent": true
+   },
+   "reformulee": {
+    "texte": "Et si ma parcelle de cacao fait plus de 4 hectares, faut-il toujours fournir les coordonnées GPS de la parcelle au titre de l'EUDR ?",
+    "chunks": [
+     "EUDR-009-p015-c00",
+     "EUDR-001-p016-c02",
+     "EUDR-009-p020-c01",
+     "EUDR-009-p017-c01"
+    ],
+    "docs": [
+     "EUDR-009",
+     "EUDR-001",
+     "EUDR-009",
+     "EUDR-009"
+    ],
+    "meilleur_score": 0.7862,
+    "pertinent": true
+   },
+   "complete": {
+    "texte": "Pour l'EUDR, quelles coordonnées GPS faut-il fournir si ma parcelle fait plus de 4 hectares ?",
+    "chunks": [
+     "EUDR-009-p015-c00",
+     "EUDR-001-p016-c02",
+     "EUDR-009-p020-c01",
+     "EUDR-009-p017-c01"
+    ],
+    "docs": [
+     "EUDR-009",
+     "EUDR-001",
+     "EUDR-009",
+     "EUDR-009"
+    ],
+    "meilleur_score": 0.8251,
+    "pertinent": true
+   }
+  },
+  {
+   "id": "Q132",
+   "attendus": [
+    "EUDR-010",
+    "EUDR-009"
+   ],
+   "duree_reformulation": 1.174,
+   "seule": {
+    "texte": "Et ça commence quand ?",
+    "chunks": [
+     "EUDR-009-p098-c01",
+     "EUDR-009-p102-c01",
+     "EUDR-010-p008-c00",
+     "EUDR-001-p037-c01"
+    ],
+    "docs": [
+     "EUDR-009",
+     "EUDR-009",
+     "EUDR-010",
+     "EUDR-001"
+    ],
+    "meilleur_score": 0.6082,
+    "pertinent": true
+   },
+   "reformulee": {
+    "texte": "Quand l'EUDR entre-t-il en application ?",
+    "chunks": [
+     "EUDR-009-p098-c01",
+     "EUDR-009-p079-c00",
+     "EUDR-009-p099-c00",
+     "EUDR-003-p003-c00"
+    ],
+    "docs": [
+     "EUDR-009",
+     "EUDR-009",
+     "EUDR-009",
+     "EUDR-003"
+    ],
+    "meilleur_score": 0.8627,
+    "pertinent": true
+   },
+   "complete": {
+    "texte": "Quand l'EUDR commence-t-il à s'appliquer ?",
+    "chunks": [
+     "EUDR-009-p098-c01",
+     "EUDR-009-p079-c00",
+     "EUDR-009-p099-c00",
+     "EUDR-009-p102-c01"
+    ],
+    "docs": [
+     "EUDR-009",
+     "EUDR-009",
+     "EUDR-009",
+     "EUDR-009"
+    ],
+    "meilleur_score": 0.8616,
+    "pertinent": true
+   }
+  },
+  {
+   "id": "Q154",
+   "attendus": [
+    "CERT-004"
+   ],
+   "duree_reformulation": 2.463,
+   "seule": {
+    "texte": "Et un agent doit passer dans chaque ménage tous les combien ?",
+    "chunks": [
+     "CERT-004-p015-c00",
+     "CERT-004-p016-c00",
+     "CERT-004-p055-c00",
+     "CERT-004-p041-c00"
+    ],
+    "docs": [
+     "CERT-004",
+     "CERT-004",
+     "CERT-004",
+     "CERT-004"
+    ],
+    "meilleur_score": 0.7821,
+    "pertinent": true
+   },
+   "reformulee": {
+    "texte": "Dans le cadre d'un SSRTE, un agent doit passer dans chaque ménage tous les combien ?",
+    "chunks": [
+     "CERT-004-p015-c00",
+     "CERT-004-p016-c00",
+     "CERT-004-p055-c00",
+     "CERT-004-p041-c00"
+    ],
+    "docs": [
+     "CERT-004",
+     "CERT-004",
+     "CERT-004",
+     "CERT-004"
+    ],
+    "meilleur_score": 0.8313,
+    "pertinent": true
+   },
+   "complete": {
+    "texte": "Dans le SSRTE, un agent doit passer dans chaque ménage tous les combien ?",
+    "chunks": [
+     "CERT-004-p015-c00",
+     "CERT-004-p016-c00",
+     "CERT-004-p055-c00",
+     "CERT-004-p041-c00"
+    ],
+    "docs": [
+     "CERT-004",
+     "CERT-004",
+     "CERT-004",
+     "CERT-004"
+    ],
+    "meilleur_score": 0.8309,
+    "pertinent": true
+   }
+  },
+  {
+   "id": "Q155",
+   "attendus": [
+    "CERT-008"
+   ],
+   "duree_reformulation": 3.541,
+   "seule": {
+    "texte": "Et c'est qui qui la paie ?",
+    "chunks": [
+     "CERT-007-p066-c01",
+     "BPA-004-p042-c00",
+     "BPA-004-p043-c00",
+     "BPA-004-p043-c01"
+    ],
+    "docs": [
+     "CERT-007",
+     "BPA-004",
+     "BPA-004",
+     "BPA-004"
+    ],
+    "meilleur_score": 0.4481,
+    "pertinent": true
+   },
+   "reformulee": {
+    "texte": "Qui paie la prime pour le cacao certifié ARS 1000 ?",
+    "chunks": [
+     "CERT-008-p097-c00",
+     "CERT-008-p015-c01",
+     "CERT-008-p100-c01",
+     "CERT-008-p100-c00"
+    ],
+    "docs": [
+     "CERT-008",
+     "CERT-008",
+     "CERT-008",
+     "CERT-008"
+    ],
+    "meilleur_score": 0.8312,
+    "pertinent": true
+   },
+   "complete": {
+    "texte": "Qui paie la prime pour le cacao certifié ARS 1000 ?",
+    "chunks": [
+     "CERT-008-p097-c00",
+     "CERT-008-p015-c01",
+     "CERT-008-p100-c01",
+     "CERT-008-p100-c00"
+    ],
+    "docs": [
+     "CERT-008",
+     "CERT-008",
+     "CERT-008",
+     "CERT-008"
+    ],
+    "meilleur_score": 0.8312,
+    "pertinent": true
+   }
+  },
+  {
+   "id": "Q258",
+   "attendus": [
+    "BPA-002"
+   ],
+   "duree_reformulation": 1.315,
+   "seule": {
+    "texte": "Et à partir de quelle densité la plantation vaut-elle encore la peine d'être fertilisée ?",
+    "chunks": [
+     "BPA-002-p062-c00",
+     "BPA-005-p028-c00",
+     "BPA-005-p029-c00",
+     "BPA-004-p027-c01"
+    ],
+    "docs": [
+     "BPA-002",
+     "BPA-005",
+     "BPA-005",
+     "BPA-004"
+    ],
+    "meilleur_score": 0.7964,
+    "pertinent": true
+   },
+   "reformulee": {
+    "texte": "À partir de quelle densité une vieille cacaoyère vaut-elle encore la peine d'être fertilisée ?",
+    "chunks": [
+     "BPA-002-p062-c00",
+     "BPA-004-p027-c01",
+     "BPA-005-p060-c00",
+     "BPA-002-p063-c00"
+    ],
+    "docs": [
+     "BPA-002",
+     "BPA-004",
+     "BPA-005",
+     "BPA-002"
+    ],
+    "meilleur_score": 0.851,
+    "pertinent": true
+   },
+   "complete": {
+    "texte": "À partir de quelle densité une vieille cacaoyère vaut-elle encore la peine d'être fertilisée ?",
+    "chunks": [
+     "BPA-002-p062-c00",
+     "BPA-004-p027-c01",
+     "BPA-005-p060-c00",
+     "BPA-002-p063-c00"
+    ],
+    "docs": [
+     "BPA-002",
+     "BPA-004",
+     "BPA-005",
+     "BPA-002"
+    ],
+    "meilleur_score": 0.851,
+    "pertinent": true
+   }
+  },
+  {
+   "id": "Q259",
+   "attendus": [
+    "BPA-002"
+   ],
+   "duree_reformulation": 1.649,
+   "seule": {
+    "texte": "Et comment savoir que le compost est prêt ?",
+    "chunks": [
+     "BPA-006-p086-c01",
+     "BPA-005-p037-c00",
+     "BPA-002-p060-c00",
+     "BPA-006-p086-c00"
+    ],
+    "docs": [
+     "BPA-006",
+     "BPA-005",
+     "BPA-002",
+     "BPA-006"
+    ],
+    "meilleur_score": 0.8772,
+    "pertinent": true
+   },
+   "reformulee": {
+    "texte": "Comment savoir que le compost fait avec les coques de cabosses pour les membres de la coopérative est prêt ?",
+    "chunks": [
+     "BPA-002-p060-c00",
+     "BPA-005-p037-c00",
+     "BPA-006-p086-c01",
+     "BPA-002-p061-c00"
+    ],
+    "docs": [
+     "BPA-002",
+     "BPA-005",
+     "BPA-006",
+     "BPA-002"
+    ],
+    "meilleur_score": 0.8235,
+    "pertinent": true
+   },
+   "complete": {
+    "texte": "Comment savoir que le compost fait avec les coques de cabosses est prêt ?",
+    "chunks": [
+     "BPA-002-p060-c00",
+     "BPA-005-p037-c00",
+     "BPA-006-p086-c01",
+     "BPA-002-p061-c00"
+    ],
+    "docs": [
+     "BPA-002",
+     "BPA-005",
+     "BPA-006",
+     "BPA-002"
+    ],
+    "meilleur_score": 0.8587,
+    "pertinent": true
+   }
+  }
+ ]
+}

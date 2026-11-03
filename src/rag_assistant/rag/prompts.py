@@ -115,9 +115,18 @@ def bloc_passages(chunks: list[Document]) -> str:
     return "<passages>\n" + "\n\n".join(parties) + "\n</passages>"
 
 
-def message_utilisateur(question: str, chunks: list[Document], profil: str | None = None) -> str:
+def message_utilisateur(
+    question: str,
+    chunks: list[Document],
+    profil: str | None = None,
+    comprise_comme: str | None = None,
+) -> str:
+    """Passages, profil et question. `comprise_comme` : la question de suivi reformulée avec
+    l'historique (étape 8), qui a servi à la recherche."""
     lignes = [bloc_passages(chunks), ""]
     if profil in PROFILS:
         lignes.append(f"La personne qui pose la question est {PROFILS[profil]}.")
     lignes.append(f"Question : {question.strip()}")
+    if comprise_comme:
+        lignes.append(f"(Compte tenu de la conversation : {comprise_comme.strip()})")
     return "\n".join(lignes)

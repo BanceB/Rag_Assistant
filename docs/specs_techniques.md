@@ -1,6 +1,6 @@
 # Spécifications techniques : agent RAG COCOACERT
 
-> Statut : **décisions D1 à D4 et D6 prises le 26 octobre 2026 (D7 et D8 le 1er novembre, D9 et D10 le 2 novembre), à présenter au directeur de mémoire.** D5 reste provisoire jusqu'aux mesures de l'étape 11.
+> Statut : **décisions D1 à D4 et D6 prises le 26 octobre 2026 (D7 et D8 le 1er novembre, D9 et D10 le 2 novembre, D11 le 3 novembre), à présenter au directeur de mémoire.** D5 reste provisoire jusqu'aux mesures de l'étape 11.
 > Tarifs et limites relevés le 26 octobre 2026 (sources en fin de document).
 
 ## 1. Architecture retenue
@@ -268,6 +268,28 @@ Lecture des résultats :
 - les avertissements « en trop » portent surtout sur des questions de certification ou d'EUDR où un rappel reste défendable ; ils sont à juger par les relecteurs.
 
 Relecture humaine : 10 réponses sont rassemblées dans `eval/resultats/reponses_2026-11-02_16h34_a_relire.md`, avec une grille (compris, utile, longueur, mots difficiles), à faire lire par une personne non spécialiste.
+
+### D11. Mémoire de conversation — **décidé**
+
+Code : `rag/memory.py` (mémoire et reformulation), `Conversation` dans `rag/chain.py` ; mesure : `uv run python -m rag_assistant.evaluation.memoire` (résultats dans `eval/resultats/memoire_2026-11-03*`).
+
+- **Mémoire par session**, en fenêtre glissante : les 6 derniers messages (`memoire.fenetre_messages`), en mémoire vive seulement (1 000 sessions au plus). Sa conservation dans le journal relève de l'étape 10 (données personnelles).
+- **Reformulation des questions de suivi** par Claude Haiku 5.5 (effort `low`, sans réflexion), seulement quand il y a un historique : « Et c'est qui qui la paie ? » devient « Qui paie la prime pour le cacao certifié ARS 1000 ? ». La question reformulée sert à la recherche ; le modèle qui rédige reçoit l'historique court (citations retirées) et la question telle que la personne l'a posée, avec sa reformulation. Garde-fou : une réécriture vide ou démesurée est ignorée.
+
+Mesure du 3 novembre 2026 sur les 14 questions de suivi du jeu d'évaluation, comparées à la même question rédigée en entier à la main (`eval/dialogues.json`) :
+
+| Question utilisée pour la recherche | Rappel@4 | Passages communs avec la question complète |
+| --- | --- | --- |
+| Question seule (sans mémoire) | 79 % | 54 % |
+| Reformulée, premier prompt | 79 % | 77 % |
+| **Reformulée, prompt retenu** | **100 %** | **86 %** |
+| Posée en entier (référence) | 100 % | — |
+
+Le premier prompt perdait le sujet (« Et si ma parcelle fait plus de 4 hectares ? » restait sans l'EUDR ni les coordonnées GPS, et gagnait « en Côte d'Ivoire », absent de la conversation). Le prompt retenu demande de nommer le sujet, de reprendre les précisions utiles, de ne rien ajouter, avec trois exemples sans lien avec les questions mesurées. Pour une question (« Et ça commence quand ? »), la FAQ de la Commission a été ajoutée aux documents attendus, comme à l'étape 6 pour la question semblable (1 preuve, module `q_alternatives_etape8`).
+
+Ce test ne donne au modèle que les questions précédentes, sans les réponses de l'assistant. Dans l'usage réel, les réponses sont aussi dans l'historique : les 5 dialogues de 3 tours (EUDR, swollen shoot, fermentation et séchage, ARS 1000, SSRTE) passés dans la chaîne complète donnent 15 réponses cohérentes, chaque question de suivi étant bien comprise (« Ça dure combien de jours ? » → « Combien de jours dure la fermentation des fèves de cacao sur feuilles de bananier ? »).
+
+Coût et temps : la reformulation ajoute 1,7 s en médiane (de 1,2 à 3,5 s) aux seules questions de suivi, pour un coût négligeable. C'est le principal levier de temps pour l'étape 11 (prompt plus court, ou reformulation sautée quand la question nomme déjà son sujet).
 
 ## 4. Sources
 
