@@ -3,9 +3,15 @@
 from __future__ import annotations
 
 import base64
+import logging
 from pathlib import Path
 
 import streamlit as st
+
+from rag_assistant.config import get_settings
+from rag_assistant.services.journal import Journal
+
+log = logging.getLogger(__name__)
 
 STATIC = Path(__file__).parent / "static"
 LOGO_PNG = STATIC / "logo.png"
@@ -230,3 +236,27 @@ def en_tete(sous_titre: str | None = None) -> None:
             on_click=_basculer_theme,
             help="Changer les couleurs de l'affichage",
         )
+
+
+@st.cache_resource(show_spinner=False)
+def _journal_serveur() -> Journal:
+    settings = get_settings()
+    return Journal(settings.chemins.base_sqlite, settings.journal.conservation_jours)
+
+
+def journal_partage() -> Journal | None:
+    """Le journal SQLite (étape 10), partagé par les deux pages.
+
+    Pendant les tests : celui injecté dans `_journal_test`, ou aucun (on n'écrit jamais dans
+    data/app.db). Si la base est illisible, l'application continue sans journal.
+    """
+    ss = st.session_state
+    if "_journal_test" in ss:
+        return ss["_journal_test"]
+    if "_assistant_test" in ss:
+        return None
+    try:
+        return _journal_serveur()
+    except Exception:
+        log.exception("Journal indisponible")
+        return None

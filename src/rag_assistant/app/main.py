@@ -15,5 +15,5 @@ from rag_assistant.app.navigation import ADMIN, CHAT
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s : %(message)s")
 
-st.set_page_config(page_title=NOM_APP, page_icon=str(LOGO_PNG), layout="centered")
+st.set_page_config(page_title=NOM_APP, page_icon=str(LOGO_PNG))  # largeur : chaque page
 st.navigation([CHAT, ADMIN], position="hidden").run()

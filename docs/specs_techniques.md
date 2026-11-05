@@ -308,6 +308,18 @@ Code : `src/rag_assistant/app/` (`main.py` lance l'application ; `chat.py`, `adm
 - **Profil par défaut** : « Agriculteur ou agricultrice », public principal.
 - **Écran d'accueil** de la maquette V2 : logo, salutation et consigne centrés (titre en Bricolage Grotesque, chargée depuis Google Fonts, sinon police système).
 
+### D13. Journal des échanges, avis et protection des données — **décidé**
+
+Code : `services/journal.py` (base SQLite `data/app.db`, ignorée par Git), branché dans `app/chat.py` ; tableau de bord dans `app/admin.py` ; réglages `journal` de `config/settings.yaml`.
+
+- **Ce qui est enregistré pour chaque question** : toujours des chiffres sans contenu (date, refus et motif, nombre et identifiants des sources, score du reranker, temps total et premier mot, tokens, type d'erreur) ; le texte de la question et de la réponse seulement si la personne a activé « Partager mes questions » dans le panneau, après masquage des courriels et des suites d'au moins 8 chiffres (téléphones, numéros de pièce), les prix et doses restant intacts.
+- **Avis 👍/👎** : un par réponse, modifiable, relié à l'échange.
+- **RGPD** (§7.2 et §13) : minimisation (ni nom, ni IP, ni navigateur ; session = identifiant aléatoire de l'onglet), consentement explicite pour les textes (désactivé par défaut, `journal.consentement_par_defaut`), conservation limitée à 90 jours (`journal.conservation_jours`) avec suppression automatique, export CSV et effacement depuis la page admin.
+- **Robustesse** : une panne du journal n'empêche jamais de répondre ; les tests n'écrivent jamais dans `data/app.db`.
+- **Tableau de bord** (page `/admin`, sur 7 jours, 30 jours ou tout) : les quatre indicateurs du §11 (réponses sourcées, réponses en 5 s ou moins, réponses jugées utiles, sessions), l'activité (questions, refus, erreurs, premier mot), les questions par jour, les refus par motif, les documents les plus cités, les 50 dernières questions.
+
+Limite : une session est un onglet, pas une personne ; pour compter les testeurs du §11, s'appuyer sur la feuille de passage des tests utilisateurs.
+
 ## 4. Sources
 
 - Tarifs Claude : <https://platform.claude.com/docs/en/about-claude/pricing>

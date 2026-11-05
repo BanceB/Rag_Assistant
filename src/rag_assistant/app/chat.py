@@ -14,11 +14,12 @@ from __future__ import annotations
 import html
 import logging
 import time
+import uuid
 
 import streamlit as st
 
 from rag_assistant.app import affichage as aff
-from rag_assistant.app.commun import LOGO_PNG, en_tete, logo_html, mode_clair
+from rag_assistant.app.commun import LOGO_PNG, en_tete, journal_partage, logo_html, mode_clair
 from rag_assistant.config import get_settings, secrets_manquants
 from rag_assistant.rag.chain import Assistant, creer_assistant
 
@@ -47,6 +48,12 @@ AVIS_IA = (
     "Vous échangez avec une intelligence artificielle. Elle ne remplace pas un technicien de "
     "l'ANADER ou du CNRA."
 )
+AIDE_CONSENTEMENT = (
+    "Pour améliorer l'assistant, vos questions et ses réponses sont gardées 90 jours, sans "
+    "votre nom ; les numéros de téléphone et les courriels sont masqués. N'écrivez pas votre "
+    "nom. Sans cette option, seuls des chiffres sont gardés (temps de réponse, refus, avis)."
+)
+
 # Disposition de la maquette V2 : accueil centré, zone de saisie arrondie avec bouton orangé.
 # Les couleurs (--doux, --carte…) viennent de commun.STYLES.
 STYLES_CHAT = """
@@ -78,6 +85,9 @@ def _etat() -> None:
     ss.setdefault("messages", [])  # {"role": "user", "texte"} | {"role": "assistant", "reponse"}
     ss.setdefault("limiteur", aff.Limiteur(QUESTIONS_PAR_HEURE))
     ss.setdefault("compteur", 0)  # identifiant des réponses (clé des boutons d'avis)
+    # identifiant tiré au hasard pour l'onglet : relie les questions d'une même conversation
+    # dans le journal, sans rien dire de la personne
+    ss.setdefault("session_id", uuid.uuid4().hex)
 
 
 def _choisir(question: str) -> None:
@@ -93,6 +103,12 @@ def _nouvelle_conversation() -> None:
 def _assistant_partage() -> Assistant:
     """Un seul assistant (modèles, base vectorielle) pour toutes les sessions du serveur."""
     return creer_assistant()
+
+
+def _consentement() -> bool:
+    return bool(
+        st.session_state.get("consentement", get_settings().journal.consentement_par_defaut)
+    )
 
 
 def _assistant() -> Assistant | None:
@@ -140,6 +156,12 @@ def panneau() -> None:
             format_func=PROFILS.get,
             key="profil",
             help="Adapte le vocabulaire des réponses. Les sources restent les mêmes.",
+        )
+        st.toggle(
+            "Partager mes questions",
+            value=get_settings().journal.consentement_par_defaut,
+            key="consentement",
+            help=AIDE_CONSENTEMENT,
         )
         st.markdown("**Questions fréquentes**")
         categories = aff.charger_suggestions()
@@ -199,9 +221,11 @@ def afficher_reponse(message: dict) -> None:
     if r.get("question_recherche") and r["question_recherche"] != r["question"]:
         st.caption(f"Question comprise comme : « {r['question_recherche']} »")
     avis = st.feedback("thumbs", key=f"avis_{message['id']}")
-    if avis is not None and message.get("avis") != avis:
-        message["avis"] = avis  # enregistré dans la base à l'étape 10
-        log.info("Avis %s sur la réponse %s", "utile" if avis else "pas utile", message["id"])
+    if avis != message.get("avis"):
+        message["avis"] = avis
+        journal = journal_partage()
+        if journal is not None and message.get("journal_id"):
+            journal.noter(message["journal_id"], avis)
 
 
 def historique_pour_l_assistant(messages: list[dict]) -> list[dict]:
@@ -248,8 +272,9 @@ def traiter(question: str, assistant: Assistant) -> None:
 
         try:
             reponse = assistant.repondre(question, historique, profil, au_fil=au_fil)
-        except Exception:
-            log.exception("Échec de la réponse à %r", question)
+        except Exception as exc:
+            log.exception("Échec de la réponse")
+            _journaliser_erreur(exc, profil)
             zone.empty()
             ss["erreur"] = question
             _boite_erreur(question)
@@ -257,9 +282,34 @@ def traiter(question: str, assistant: Assistant) -> None:
         zone.empty()
         ss["compteur"] += 1
         message = {"role": "assistant", "id": ss["compteur"], "reponse": reponse.en_dict()}
+        message["journal_id"] = _journaliser(message["reponse"], profil, suivi=bool(historique))
         ss["messages"] += [{"role": "user", "texte": question}, message]
         log.info("Réponse %s : %s", message["id"], reponse.latences)
         afficher_reponse(message)
+
+
+def _journaliser(reponse: dict, profil: str | None, suivi: bool) -> int | None:
+    """Enregistre l'échange ; une panne du journal ne doit jamais empêcher de répondre."""
+    journal = journal_partage()
+    if journal is None:
+        return None
+    try:
+        return journal.enregistrer(
+            st.session_state["session_id"], reponse, profil=profil,
+            consentement=_consentement(), suivi=suivi,
+        )  # fmt: skip
+    except Exception:
+        log.exception("Échange non enregistré")
+        return None
+
+
+def _journaliser_erreur(exc: BaseException, profil: str | None) -> None:
+    journal = journal_partage()
+    if journal is not None:
+        try:
+            journal.enregistrer_erreur(st.session_state["session_id"], exc, profil=profil)
+        except Exception:
+            log.exception("Erreur non enregistrée")
 
 
 def _boite_erreur(question: str) -> None:
@@ -275,6 +325,7 @@ def erreur(question: str) -> None:
 
 
 def page() -> None:
+    st.set_page_config(layout="centered")  # discussion centrée (la page admin est large)
     _etat()
     panneau()
     assistant = _assistant()

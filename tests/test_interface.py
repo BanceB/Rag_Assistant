@@ -171,3 +171,83 @@ def test_icones_colorees_selon_le_mode():
     assert all(c.couleur and c.couleur_clair for c in categories)
     sombre, clair = styles_icones(categories, False), styles_icones(categories, True)
     assert ".st-key-cat_maladies" in sombre and "#D2693C" in sombre and "#B4532A" in clair
+
+
+def test_journal_sans_puis_avec_consentement(base, tmp_path):  # noqa: F811
+    from rag_assistant.services.journal import Journal
+
+    a, _ = assistant(base, "nervures", "Ce sont des signes du swollen shoot [1].")
+    journal = Journal(tmp_path / "app.db")
+    at = AppTest.from_file(MAIN, default_timeout=30)
+    at.session_state["_assistant_test"] = a
+    at.session_state["_journal_test"] = journal
+    at.run()
+    assert at.sidebar.toggle(key="consentement").value is False
+    at.chat_input[0].set_value("Bandes rouges le long des nervures ?").run()
+    premiere = journal.derniers()[0]
+    assert premiere["question"] is None and premiere["nb_sources"] == 1
+    assert premiere["session"] == at.session_state["session_id"]
+    assert at.session_state["messages"][1]["journal_id"] == premiere["id"]
+
+    at.sidebar.toggle(key="consentement").set_value(True).run()
+    at.chat_input[0].set_value("Et sur les nervures âgées ?").run()
+    seconde = journal.derniers()[0]
+    assert seconde["question"] == "Et sur les nervures âgées ?" and seconde["suivi"] == 1
+
+
+def test_panne_du_service_journalisee_sans_texte(tmp_path):
+    from rag_assistant.services.journal import Journal
+
+    class EnPanne:
+        def repondre(self, *args, **kwargs):
+            raise TimeoutError("trop long")
+
+    journal = Journal(tmp_path / "app.db")
+    at = AppTest.from_file(MAIN, default_timeout=30)
+    at.session_state["_assistant_test"] = EnPanne()
+    at.session_state["_journal_test"] = journal
+    at.run()
+    at.chat_input[0].set_value("Bandes rouges ?").run()
+    ligne = journal.derniers()[0]
+    assert ligne["erreur"] == "TimeoutError" and ligne["question"] is None
+
+
+def test_avis_enregistre_dans_le_journal(base, tmp_path):  # noqa: F811
+    from rag_assistant.services.journal import Journal
+
+    a, _ = assistant(base, "nervures", "Swollen shoot [1].")
+    journal = Journal(tmp_path / "app.db")
+    at = AppTest.from_file(MAIN, default_timeout=30)
+    at.session_state["_assistant_test"] = a
+    at.session_state["_journal_test"] = journal
+    at.run()
+    at.chat_input[0].set_value("Bandes rouges le long des nervures ?").run()
+    at.get("feedback")[0].set_value(1).run()  # 👍
+    assert journal.derniers()[0]["avis"] == 1
+    at.get("feedback")[0].set_value(0).run()  # 👎 : l'avis est remplacé
+    assert journal.derniers()[0]["avis"] == 0
+    assert journal.statistiques()["avis"] == 1
+
+
+def test_tableau_de_bord_admin(tmp_path, monkeypatch):
+    from rag_assistant.services.journal import Journal
+
+    journal = Journal(tmp_path / "app.db")
+    journal.noter(
+        journal.enregistrer("s1", {"question": "Q", "texte": "R [1]", "refus": False,
+                                   "sources": [{"doc_id": "MAL-001", "page": 2}],
+                                   "latences": {"total": 3.0}}, consentement=True), 1)  # fmt: skip
+    journal.enregistrer("s2", {"question": "Qui a gagné la CAN ?", "refus": True,
+                               "motif": "sous_le_seuil", "latences": {"total": 0.4}})  # fmt: skip
+    at = AppTest.from_string(
+        "from rag_assistant.app import admin\nadmin.page()", default_timeout=30
+    )
+    at.session_state["admin"] = True
+    at.session_state["_journal_test"] = journal
+    at.run()
+    assert not at.exception
+    valeurs = {m.label: m.value for m in at.metric}
+    assert valeurs["Réponses sourcées"] == "100 %" and valeurs["Réponses jugées utiles"] == "100 %"
+    assert valeurs["Questions"] == "2" and valeurs["Refus"] == "1" and valeurs["Sessions"] == "2"
+    tableau = at.dataframe[2].value  # refus, documents, dernières questions
+    assert list(tableau["Question"]) == ["(non partagée)", "Q"]

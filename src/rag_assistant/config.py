@@ -74,6 +74,14 @@ class MemoireSettings:
 
 
 @dataclass(frozen=True)
+class JournalSettings:
+    """Étape 10 : journal des échanges (F9) et protection des données (RGPD)."""
+
+    conservation_jours: int = 90  # au-delà, les échanges sont supprimés
+    consentement_par_defaut: bool = False  # True = textes enregistrés sauf refus de la personne
+
+
+@dataclass(frozen=True)
 class Chemins:
     corpus: Path
     catalogue: Path
@@ -92,6 +100,7 @@ class Settings:
     retrieval: RetrievalSettings
     memoire: MemoireSettings
     chemins: Chemins
+    journal: JournalSettings = JournalSettings()
 
     @property
     def namespace(self) -> str:
@@ -107,6 +116,8 @@ def _valider(s: Settings) -> None:
         raise ValueError(f"llm.effort doit valoir {', '.join(EFFORTS)}")
     if s.retrieval.k > s.retrieval.fetch_k:
         raise ValueError("retrieval.k ne peut pas dépasser retrieval.fetch_k")
+    if s.journal.conservation_jours < 1:
+        raise ValueError("journal.conservation_jours doit valoir au moins 1")
     if s.vectorstore.provider not in SECRETS_PAR_BASE:
         raise ValueError("vectorstore.provider doit valoir 'chroma' ou 'pinecone'")
 
@@ -130,6 +141,7 @@ def load_settings(path: Path = SETTINGS_PATH) -> Settings:
         retrieval=RetrievalSettings(**brut["retrieval"]),
         memoire=MemoireSettings(**brut["memoire"]),
         chemins=Chemins(**{nom: PROJECT_ROOT / p for nom, p in brut["chemins"].items()}),
+        journal=JournalSettings(**(brut.get("journal") or {})),
     )
     _valider(settings)
     return settings

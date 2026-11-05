@@ -37,6 +37,13 @@ retrieval:
 memoire:
   fenetre_messages: 6
 
+journal:
+  # Étape 10 : questions, réponses et avis enregistrés dans chemins.base_sqlite (data/app.db)
+  conservation_jours: 90          # RGPD : durée de conservation, puis suppression automatique
+  # Le texte des questions et réponses n'est gardé qu'avec l'accord de la personne (case du
+  # panneau). Sans accord, seuls des chiffres sans contenu sont gardés (refus, temps, sources).
+  consentement_par_defaut: false
+
 chemins:
   corpus: data/corpus
   catalogue: data/corpus_catalogue.csv
