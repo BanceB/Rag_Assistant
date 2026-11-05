@@ -101,3 +101,22 @@ def test_export_csv(journal):
     csv_texte = journal.exporter_csv()
     assert csv_texte.splitlines()[0].startswith("id,horodatage,session")
     assert len(csv_texte.splitlines()) == 2
+
+
+def test_base_d_avant_le_cache_mise_a_jour(tmp_path):
+    chemin = tmp_path / "app.db"
+    with sqlite3.connect(chemin) as c:  # table créée par la première version de l'étape 10
+        c.execute(
+            "CREATE TABLE echanges (id INTEGER PRIMARY KEY AUTOINCREMENT, horodatage TEXT NOT NULL,"
+            " session TEXT NOT NULL, profil TEXT, consentement INTEGER NOT NULL, question TEXT,"
+            " question_recherche TEXT, reponse TEXT, suivi INTEGER NOT NULL DEFAULT 0,"
+            " refus INTEGER NOT NULL DEFAULT 0, motif TEXT, couverture TEXT,"
+            " nb_sources INTEGER NOT NULL DEFAULT 0, sources TEXT,"
+            " nb_avertissements INTEGER NOT NULL DEFAULT 0, meilleur_score REAL,"
+            " latence_totale REAL, latence_premier_mot REAL, tokens_entree INTEGER,"
+            " tokens_sortie INTEGER, erreur TEXT)"
+        )
+    journal = j.Journal(chemin)
+    journal.enregistrer("s1", reponse(depuis_cache={"date": "2026-11-05", "secours": False}))
+    assert journal.derniers()[0]["cache"] == 1
+    assert journal.statistiques()["latence_mediane"] is None  # le cache n'entre pas dans les temps

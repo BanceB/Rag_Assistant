@@ -53,7 +53,8 @@ CREATE TABLE IF NOT EXISTS echanges (
     latence_premier_mot REAL,
     tokens_entree INTEGER,
     tokens_sortie INTEGER,
-    erreur TEXT                        -- type d'erreur, sans message
+    erreur TEXT,                       -- type d'erreur, sans message
+    cache INTEGER NOT NULL DEFAULT 0   -- 1 : réponse servie par le cache, 2 : cache de secours
 );
 CREATE INDEX IF NOT EXISTS echanges_horodatage ON echanges (horodatage);
 CREATE TABLE IF NOT EXISTS avis (
@@ -107,6 +108,9 @@ class Journal:
         self.chemin.parent.mkdir(parents=True, exist_ok=True)
         with self._connexion() as c:
             c.executescript(SCHEMA)
+            colonnes = {r["name"] for r in c.execute("PRAGMA table_info(echanges)")}
+            if "cache" not in colonnes:  # base créée avant le cache (F8) : on ajoute la colonne
+                c.execute("ALTER TABLE echanges ADD COLUMN cache INTEGER NOT NULL DEFAULT 0")
         self.purger()
 
     def _connexion(self) -> sqlite3.Connection:
@@ -130,6 +134,8 @@ class Journal:
         self._purger_si_besoin()
         latences, usage = reponse.get("latences") or {}, reponse.get("usage") or {}
         sources = [[s.get("doc_id"), s.get("page")] for s in reponse.get("sources") or []]
+        depuis_cache = reponse.get("depuis_cache") or {}
+        cache = (2 if depuis_cache.get("secours") else 1) if depuis_cache else 0
         ligne = {
             "horodatage": maintenant().isoformat(timespec="seconds"),
             "session": session,
@@ -153,6 +159,7 @@ class Journal:
             "tokens_entree": usage.get("entree"),
             "tokens_sortie": usage.get("sortie"),
             "erreur": None,
+            "cache": cache,
         }
         return self._inserer(ligne)
 
@@ -233,8 +240,15 @@ class Journal:
         traitees = [r for r in lignes if not r["erreur"]]
         repondues = [r for r in traitees if not r["refus"]]
         refus = [r for r in traitees if r["refus"]]
-        totales = [r["latence_totale"] for r in traitees if r["latence_totale"] is not None]
-        premiers = [r["latence_premier_mot"] for r in repondues if r["latence_premier_mot"]]
+        # temps mesurés sur les réponses calculées : une réponse du cache (0 s) flatterait le
+        # pipeline ; le nombre de réponses servies par le cache est compté à part
+        calculees = [r for r in traitees if not r["cache"]]
+        totales = [r["latence_totale"] for r in calculees if r["latence_totale"] is not None]
+        premiers = [
+            r["latence_premier_mot"]
+            for r in calculees
+            if not r["refus"] and r["latence_premier_mot"]
+        ]
         avis = [r["avis"] for r in lignes if r["avis"] is not None]
         par_jour = Counter(r["horodatage"][:10] for r in lignes)
         documents = Counter(doc for r in repondues for doc, _ in json.loads(r["sources"] or "[]"))
@@ -260,6 +274,8 @@ class Journal:
             "avis": len(avis),
             "taux_utiles": _pourcentage(sum(avis), len(avis)),
             "consentements": sum(1 for r in traitees if r["consentement"]),
+            "depuis_cache": sum(1 for r in traitees if r["cache"] == 1),
+            "secours": sum(1 for r in traitees if r["cache"] == 2),
             "par_jour": dict(sorted(par_jour.items())),
             "documents_cites": dict(documents.most_common(10)),
         }

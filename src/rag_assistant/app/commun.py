@@ -9,6 +9,7 @@ from pathlib import Path
 import streamlit as st
 
 from rag_assistant.config import get_settings
+from rag_assistant.services.cache import CacheReponses
 from rag_assistant.services.journal import Journal
 
 log = logging.getLogger(__name__)
@@ -259,4 +260,28 @@ def journal_partage() -> Journal | None:
         return _journal_serveur()
     except Exception:
         log.exception("Journal indisponible")
+        return None
+
+
+@st.cache_resource(show_spinner=False)
+def _cache_serveur() -> CacheReponses:
+    settings = get_settings()
+    return CacheReponses(settings.chemins.base_sqlite, settings.cache.duree_jours)
+
+
+def cache_partage() -> CacheReponses | None:
+    """Le cache des réponses fréquentes (F8), dans la même base que le journal.
+
+    Mêmes règles que le journal pendant les tests ; None si le cache est désactivé
+    (`cache.actif: false`) ou illisible.
+    """
+    ss = st.session_state
+    if "_cache_test" in ss:
+        return ss["_cache_test"]
+    if "_assistant_test" in ss or not get_settings().cache.actif:
+        return None
+    try:
+        return _cache_serveur()
+    except Exception:
+        log.exception("Cache indisponible")
         return None

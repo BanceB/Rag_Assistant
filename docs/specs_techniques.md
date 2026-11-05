@@ -320,6 +320,17 @@ Code : `services/journal.py` (base SQLite `data/app.db`, ignorée par Git), bran
 
 Limite : une session est un onglet, pas une personne ; pour compter les testeurs du §11, s'appuyer sur la feuille de passage des tests utilisateurs.
 
+### D14. Cache des réponses fréquentes et mode dégradé (F8) — **décidé**
+
+Code : `services/cache.py` (table `cache_reponses` de `data/app.db`), branché dans `app/chat.py` ; réglages `cache` de `config/settings.yaml`.
+
+- **Réponse instantanée** : une question déjà posée hors conversation (même texte après normalisation : casse, espaces, ponctuation finale, apostrophes ; même profil) reçoit la réponse déjà vérifiée par les garde-fous, sans appel à Voyage ni à Claude. Mesure sur l'interface de démonstration : 1,8 s au premier passage, 0,26 s au second.
+- **Ce qui est gardé** : seulement les réponses non refusées et sourcées ; jamais les questions de suivi (elles dépendent de la conversation).
+- **Fraîcheur** : 30 jours (`cache.duree_jours`), et une empreinte de l'assistant (nom et taille de la collection Chroma, prompt système, seuil, k, modèle) : réindexer le corpus ou changer le prompt écarte les anciennes réponses. Après le remplacement d'un document à taille égale, vider le cache depuis la page admin.
+- **Mode dégradé** : si le service ne répond pas, une réponse déjà donnée à la même question est servie quelle que soit son ancienneté, avec la mention « Le service ne répond pas pour l'instant : voici la réponse donnée à cette question le … ».
+- **Mesures** : le journal note les réponses du cache (et celles de secours) ; elles sont exclues des temps de réponse du tableau de bord, pour ne pas flatter le pipeline.
+- **Préchauffage** : `uv run python -m rag_assistant.services.cache --prechauffer` pose les 25 questions proposées (profil agriculteur) et garde les réponses, pour environ 25 appels à Claude.
+
 ## 4. Sources
 
 - Tarifs Claude : <https://platform.claude.com/docs/en/about-claude/pricing>

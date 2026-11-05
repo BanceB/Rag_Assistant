@@ -251,3 +251,46 @@ def test_tableau_de_bord_admin(tmp_path, monkeypatch):
     assert valeurs["Questions"] == "2" and valeurs["Refus"] == "1" and valeurs["Sessions"] == "2"
     tableau = at.dataframe[2].value  # refus, documents, dernières questions
     assert list(tableau["Question"]) == ["(non partagée)", "Q"]
+
+
+def test_cache_reponse_instantanee_puis_secours_en_panne(base, tmp_path):  # noqa: F811
+    from rag_assistant.services.cache import CacheReponses
+    from rag_assistant.services.journal import Journal
+
+    a, generateur = assistant(base, "nervures", "Ce sont des signes du swollen shoot [1].")
+    cache, journal = CacheReponses(tmp_path / "app.db"), Journal(tmp_path / "app.db")
+
+    def ouvrir(un_assistant):
+        at = AppTest.from_file(MAIN, default_timeout=30)
+        at.session_state["_assistant_test"] = un_assistant
+        at.session_state["_cache_test"] = cache
+        at.session_state["_journal_test"] = journal
+        return at.run()
+
+    question = "Bandes rouges le long des nervures ?"
+    at = ouvrir(a)
+    at.chat_input[0].set_value(question).run()
+    assert len(generateur.appels) == 1 and cache.statistiques()["reponses"] == 1
+
+    # nouvel onglet, même question : réponse du cache, sans appeler le modèle
+    at = ouvrir(a)
+    at.chat_input[0].set_value(question).run()
+    assert len(generateur.appels) == 1
+    assert any("Réponse déjà donnée" in c.value for c in at.caption)
+
+    # service en panne : la réponse gardée est servie en secours
+    class EnPanne:
+        recuperateur = a.recuperateur
+
+        def repondre(self, *args, **kwargs):
+            raise ConnectionError("réseau coupé")
+
+    cache.vider()
+    cache.ecrire(
+        question, "agriculteur", "ancienne-version", at.session_state["messages"][1]["reponse"]
+    )
+    at = ouvrir(EnPanne())
+    at.chat_input[0].set_value(question).run()
+    assert not at.error and any("ne répond pas" in c.value for c in at.caption)
+    stats = journal.statistiques()
+    assert (stats["depuis_cache"], stats["secours"], stats["erreurs"]) == (1, 1, 0)

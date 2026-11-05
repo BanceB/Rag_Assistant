@@ -44,6 +44,13 @@ journal:
   # panneau). Sans accord, seuls des chiffres sans contenu sont gardés (refus, temps, sources).
   consentement_par_defaut: false
 
+cache:
+  # Étape 10 (F8, faible connectivité) : une question déjà posée (même texte, même profil,
+  # hors conversation en cours) reçoit tout de suite la réponse déjà vérifiée ; si le service
+  # est coupé, une réponse gardée est servie en secours, avec sa date.
+  actif: true
+  duree_jours: 30                 # au-delà, la réponse est recalculée
+
 chemins:
   corpus: data/corpus
   catalogue: data/corpus_catalogue.csv

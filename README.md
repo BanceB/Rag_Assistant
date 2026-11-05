@@ -42,6 +42,14 @@ uv run streamlit run src/rag_assistant/app/main.py
 Puis ouvrir <http://localhost:8501> pour la discussion, ou <http://localhost:8501/admin> pour
 l'administration (mot de passe `ADMIN_PASSWORD`, à définir dans `.env`).
 
+Les questions, les avis et le cache des réponses fréquentes sont enregistrés dans
+`data/app.db` (jamais versionné). Pour remplir le cache avec les 25 questions proposées
+(environ 25 appels à Claude) :
+
+```bash
+uv run python -m rag_assistant.services.cache --prechauffer
+```
+
 ## Structure du dépôt
 
 ```

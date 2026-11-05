@@ -82,6 +82,14 @@ class JournalSettings:
 
 
 @dataclass(frozen=True)
+class CacheSettings:
+    """Étape 10 (F8) : réponses fréquentes gardées pour répondre sans attendre."""
+
+    actif: bool = True
+    duree_jours: int = 30  # au-delà, la réponse est recalculée (elle reste utile en secours)
+
+
+@dataclass(frozen=True)
 class Chemins:
     corpus: Path
     catalogue: Path
@@ -101,6 +109,7 @@ class Settings:
     memoire: MemoireSettings
     chemins: Chemins
     journal: JournalSettings = JournalSettings()
+    cache: CacheSettings = CacheSettings()
 
     @property
     def namespace(self) -> str:
@@ -142,6 +151,7 @@ def load_settings(path: Path = SETTINGS_PATH) -> Settings:
         memoire=MemoireSettings(**brut["memoire"]),
         chemins=Chemins(**{nom: PROJECT_ROOT / p for nom, p in brut["chemins"].items()}),
         journal=JournalSettings(**(brut.get("journal") or {})),
+        cache=CacheSettings(**(brut.get("cache") or {})),
     )
     _valider(settings)
     return settings

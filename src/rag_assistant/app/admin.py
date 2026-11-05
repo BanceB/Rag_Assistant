@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 
 from rag_assistant.app.affichage import mot_de_passe_valide
 from rag_assistant.app.chat import PROFILS
-from rag_assistant.app.commun import en_tete, journal_partage
+from rag_assistant.app.commun import cache_partage, en_tete, journal_partage
 from rag_assistant.config import PROJECT_ROOT, get_settings
 
 ESSAIS_MAX = 5
@@ -130,12 +130,17 @@ def _journal_section() -> None:
 
     st.caption("Activité")
     e, f, g, h = st.columns(4)
-    e.metric("Questions", stats["questions"])
+    e.metric("Questions", stats["questions"], help="Premier mot (médiane) : "
+             + _sec(stats["premier_mot_median"]))  # fmt: skip
     f.metric(
         "Refus", stats["refus"], help="Part des questions traitées : " + _pct(stats["taux_refus"])
     )
     g.metric("Erreurs du service", stats["erreurs"])
-    h.metric("Premier mot (médiane)", _sec(stats["premier_mot_median"]))
+    h.metric(
+        "Réponses du cache", stats["depuis_cache"] + stats["secours"],
+        help=f"Réponses déjà données, servies sans appeler le modèle (F8), dont {stats['secours']} "
+        "en secours pendant une panne. Exclues des temps de réponse.",
+    )  # fmt: skip
     if len(stats["par_jour"]) > 1:
         # une seule série : une couleur (l'accent), pas de légende ; l'infobulle donne le chiffre
         st.markdown("**Questions par jour**")
@@ -217,6 +222,16 @@ def _donnees(journal) -> None:
         )
         if st.button(f"Supprimer maintenant les échanges de plus de {jours} jours"):
             st.success(f"{journal.purger()} échange(s) supprimé(s).")
+        cache = cache_partage()
+        if cache is not None:
+            c = cache.statistiques()
+            st.markdown(
+                f"**Cache des réponses fréquentes (F8)** : {c['reponses']} réponse(s) gardée(s), "
+                f"servie(s) {c['utilisations']} fois. Elles sont recalculées après "
+                f"{get_settings().cache.duree_jours} jours ou quand le corpus change."
+            )
+            if st.button("Vider le cache", icon=":material/mop:"):
+                st.success(f"{cache.vider()} réponse(s) retirée(s) du cache.")
         confirme = st.checkbox("Je veux effacer tout le journal (irréversible)")
         if st.button("Tout effacer", disabled=not confirme, icon=":material/delete_forever:"):
             st.success(f"{journal.tout_effacer()} échange(s) effacé(s).")

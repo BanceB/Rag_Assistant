@@ -19,9 +19,17 @@ import uuid
 import streamlit as st
 
 from rag_assistant.app import affichage as aff
-from rag_assistant.app.commun import LOGO_PNG, en_tete, journal_partage, logo_html, mode_clair
+from rag_assistant.app.commun import (
+    LOGO_PNG,
+    cache_partage,
+    en_tete,
+    journal_partage,
+    logo_html,
+    mode_clair,
+)
 from rag_assistant.config import get_settings, secrets_manquants
 from rag_assistant.rag.chain import Assistant, creer_assistant
+from rag_assistant.services.cache import version_assistant
 
 log = logging.getLogger(__name__)
 
@@ -218,6 +226,16 @@ def afficher_reponse(message: dict) -> None:
     if r.get("sources"):
         with st.expander(aff.libelle_sources(len(r["sources"])), icon=":material/description:"):
             st.markdown(aff.sources_markdown(r["sources"]))
+    if r.get("depuis_cache"):
+        date = r["depuis_cache"]["date"]
+        jour = f"{date[8:10]}/{date[5:7]}/{date[:4]}"
+        if r["depuis_cache"].get("secours"):
+            st.caption(
+                f":material/cloud_off: Le service ne répond pas pour l'instant : voici la réponse "
+                f"donnée à cette question le {jour}."
+            )
+        else:
+            st.caption(f":material/bolt: Réponse déjà donnée à cette question le {jour}.")
     if r.get("question_recherche") and r["question_recherche"] != r["question"]:
         st.caption(f"Question comprise comme : « {r['question_recherche']} »")
     avis = st.feedback("thumbs", key=f"avis_{message['id']}")
@@ -257,7 +275,13 @@ def traiter(question: str, assistant: Assistant) -> None:
     profil = None if profil == SANS_PROFIL else profil
     ss.pop("erreur", None)
     bulle_personne(question)
+    # cache (F8) : seulement pour une question posée hors conversation (sans historique)
+    cache, version = _cache_et_version(assistant) if not historique else (None, None)
     with st.chat_message("assistant", avatar=str(LOGO_PNG)):
+        gardee = _lire_cache(cache, question, profil, version)
+        if gardee:  # réponse déjà vérifiée : pas d'appel au modèle
+            _publier(question, gardee, profil, suivi=False)
+            return
         zone = st.empty()
         zone.markdown(ATTENTE)
         recu: list[str] = []
@@ -274,18 +298,55 @@ def traiter(question: str, assistant: Assistant) -> None:
             reponse = assistant.repondre(question, historique, profil, au_fil=au_fil)
         except Exception as exc:
             log.exception("Échec de la réponse")
-            _journaliser_erreur(exc, profil)
             zone.empty()
+            secours = _lire_cache(cache, question, profil, version, secours=True)
+            if secours:  # service coupé, mais la question a déjà reçu une réponse
+                _publier(question, secours, profil, suivi=False)
+                return
+            _journaliser_erreur(exc, profil)
             ss["erreur"] = question
             _boite_erreur(question)
             return
         zone.empty()
-        ss["compteur"] += 1
-        message = {"role": "assistant", "id": ss["compteur"], "reponse": reponse.en_dict()}
-        message["journal_id"] = _journaliser(message["reponse"], profil, suivi=bool(historique))
-        ss["messages"] += [{"role": "user", "texte": question}, message]
-        log.info("Réponse %s : %s", message["id"], reponse.latences)
-        afficher_reponse(message)
+        resultat = reponse.en_dict()
+        if cache is not None:
+            try:
+                cache.ecrire(question, profil, version, resultat)
+            except Exception:
+                log.exception("Réponse non gardée dans le cache")
+        _publier(question, resultat, profil, suivi=bool(historique))
+
+
+def _cache_et_version(assistant: Assistant):
+    cache = cache_partage()
+    if cache is None:
+        return None, None
+    try:
+        return cache, version_assistant(assistant)
+    except Exception:
+        log.exception("Version de l'assistant inconnue : cache ignoré")
+        return None, None
+
+
+def _lire_cache(cache, question, profil, version, secours: bool = False) -> dict | None:
+    if cache is None:
+        return None
+    try:
+        return cache.lire(question, profil, version, secours=secours)
+    except Exception:
+        log.exception("Cache illisible")
+        return None
+
+
+def _publier(question: str, resultat: dict, profil: str | None, suivi: bool) -> None:
+    """Ajoute l'échange à la conversation, l'enregistre au journal et l'affiche."""
+    ss = st.session_state
+    ss["compteur"] += 1
+    message = {"role": "assistant", "id": ss["compteur"], "reponse": resultat}
+    message["journal_id"] = _journaliser(resultat, profil, suivi=suivi)
+    ss["messages"] += [{"role": "user", "texte": question}, message]
+    log.info("Réponse %s : %s", message["id"], resultat.get("latences"))
+    afficher_reponse(message)
 
 
 def _journaliser(reponse: dict, profil: str | None, suivi: bool) -> int | None:
