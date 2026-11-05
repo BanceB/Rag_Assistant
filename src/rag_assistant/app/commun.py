@@ -153,6 +153,12 @@ MODE_CLAIR = """
 [data-testid="stAlertContainer"]:has([data-testid="stAlertContentInfo"]){background:var(--info-fond)!important}
 [data-testid="stVerticalBlockBorderWrapper"],[data-testid="stForm"]{border-color:var(--bord)!important}
 hr{border-color:var(--bord)!important}
+[data-testid="stTooltipIcon"] button,[data-testid="stTooltipIcon"] svg{color:var(--doux)!important;
+  stroke:var(--doux)!important}
+.st-key-consentement label>div:first-of-type{background:#C9C3B6!important}
+.st-key-consentement label>div:first-of-type>div{background:#FFFFFF!important;
+  box-shadow:0 1px 2px rgba(33,31,27,.35)}
+.st-key-consentement label:has(input:checked)>div:first-of-type{background:var(--accent)!important}
 [data-testid="stSidebar"] button[kind="tertiary"]:hover{background:var(--survol)}
 </style>
 """
