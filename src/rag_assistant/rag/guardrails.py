@@ -215,13 +215,14 @@ def construire_sources(texte: str, chunks: list[Document]) -> tuple[str, list[So
         nouveaux[n] = par_page[cle]
 
     def remplacer(correspondance: re.Match) -> str:
-        numeros = [int(x) for x in re.split(r"\s*[,;]\s*", correspondance.group(1))]
+        espaces, groupe = correspondance.group(1), correspondance.group(2)
+        numeros = [int(x) for x in re.findall(r"\d+", groupe)]
         gardes = list(dict.fromkeys(nouveaux[x] for x in numeros if x in nouveaux))
-        return "".join(f"[{x}]" for x in gardes)
+        # citation retirée : on retire aussi l'espace qui la précédait (« Inventé [9]. »)
+        return espaces + "".join(f"[{x}]" for x in gardes) if gardes else ""
 
-    texte = CITATION.sub(remplacer, texte)
-    texte = re.sub(r"(\[\d+\])(?:\1)+", r"\1", texte)  # [1][1] -> [1]
-    texte = re.sub(r"[ \t]+([.,;:!?])", r"\1", texte)  # espace laissée par une citation retirée
+    # une suite de citations collées ([2][1], [1, 3]) est traitée d'un bloc
+    texte = re.sub(rf"([ \t]*)((?:{CITATION.pattern})+)", remplacer, texte)
     return texte.strip(), sources
 
 

@@ -140,8 +140,11 @@ class FauxGenerateur:
     def __init__(self, reponse):
         self.reponse, self.appels = reponse, []
 
-    def __call__(self, systeme, messages):
+    def __call__(self, systeme, messages, au_fil=None):
         self.appels.append(messages)
+        if au_fil:  # comme Claude : le texte arrive par morceaux (étape 9)
+            for mot in self.reponse.split(" "):
+                au_fil(mot + " ")
         return self.reponse, {"entree": 100, "sortie": 20}
 
 

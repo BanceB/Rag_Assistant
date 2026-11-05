@@ -1,0 +1,87 @@
+# Questions proposées dans le panneau de gauche de l'interface (étape 9).
+# Une catégorie = un menu dépliant ; un clic sur une question la pose à l'assistant.
+# Chaque question vient du jeu d'évaluation (eval/questions.jsonl, même identifiant) :
+# on sait donc que le corpus y répond. Icônes : https://fonts.google.com/icons
+# Modifier ce fichier ne demande pas de toucher au code.
+
+categories:
+  - id: maladies
+    couleur: "#D2693C"         # icône en mode sombre
+    couleur_clair: "#B4532A"   # plus foncée pour rester lisible en mode clair
+    icone: ":material/pest_control:"
+    libelle: "Maladies et ravageurs"
+    questions:
+      - id: Q010
+        texte: "Mes cabosses ont une tache brune qui s'agrandit, avec un duvet blanc, et elles sentent le poisson. Qu'est-ce que c'est ?"
+      - id: Q042
+        texte: "Une chenille vert clair avec deux lignes jaunes sur le dos perce les feuilles de mes cacaoyers. Qu'est-ce que c'est ?"
+      - id: Q005
+        texte: "Quelles plantes de ma parcelle peuvent garder le virus du swollen shoot ?"
+      - id: Q021
+        texte: "À quelle heure faut-il traiter les cacaoyers, et que faire s'il pleut juste après ?"
+      - id: Q161
+        texte: "Dois-je arracher toute ma plantation à cause du swollen shoot ?"
+  - id: bonnes_pratiques
+    couleur: "#7FB069"         # icône en mode sombre
+    couleur_clair: "#4F7F3A"   # plus foncée pour rester lisible en mode clair
+    icone: ":material/agriculture:"
+    libelle: "Bonnes pratiques"
+    questions:
+      - id: Q076
+        texte: "Comment savoir qu'une cabosse est mûre et bonne à récolter ?"
+      - id: Q099
+        texte: "Comment savoir, en coupant une fève, si mon cacao est bien séché ?"
+      - id: Q091
+        texte: "Comment conserver et semer les fèves enrobées pour qu'elles ne pourrissent pas ?"
+      - id: Q084
+        texte: "Comment replanter ma vieille cacaoyère progressivement sans perdre tout mon revenu ?"
+      - id: Q164
+        texte: "Ma plantation produit 300 kg par hectare. Je dois mettre de l'engrais cette année ?"
+  - id: eudr
+    couleur: "#5B8DEF"         # icône en mode sombre
+    couleur_clair: "#2F64C8"   # plus foncée pour rester lisible en mode clair
+    icone: ":material/forest:"
+    libelle: "EUDR (règlement européen)"
+    questions:
+      - id: Q113
+        texte: "Ma parcelle fait moins de 4 hectares : un seul point GPS suffit-il ?"
+      - id: Q118
+        texte: "Faut-il obligatoirement un titre foncier pour que mon cacao soit conforme à l'EUDR ?"
+      - id: Q166
+        texte: "Mon cacao est-il conforme à l'EUDR ?"
+      - id: Q291
+        texte: "Une loi nationale qui interdit de partager les coordonnées GPS des parcelles dispense-t-elle de la géolocalisation ?"
+      - id: Q294
+        texte: "La FAQ de la Commission sur l'EUDR a-t-elle une valeur juridique ?"
+  - id: certification
+    couleur: "#C9A23A"         # icône en mode sombre
+    couleur_clair: "#8C6D12"   # plus foncée pour rester lisible en mode clair
+    icone: ":material/verified:"
+    libelle: "Certification"
+    questions:
+      - id: Q144
+        texte: "Comment se déroulent les niveaux Bronze, Argent et Or de la certification ARS 1000 ?"
+      - id: Q283
+        texte: "Un cacao certifié ARS 1000 est-il automatiquement conforme à l'EUDR ?"
+      - id: Q152
+        texte: "Quels coûts faut-il prévoir pour une certification Rainforest Alliance ?"
+      - id: Q136
+        texte: "Combien de temps après avoir identifié un enfant au travail faut-il agir ?"
+      - id: Q260
+        texte: "Quels avantages un planteur tire-t-il de l'adhésion à une coopérative ?"
+  - id: indicateurs
+    couleur: "#B07CC6"         # icône en mode sombre
+    couleur_clair: "#84509C"   # plus foncée pour rester lisible en mode clair
+    icone: ":material/monitoring:"
+    libelle: "Indicateurs de durabilité"
+    questions:
+      - id: Q157
+        texte: "Comment calculer le bénéfice de ma campagne de cacao ?"
+      - id: Q264
+        texte: "Comment le prix du cacao est-il fixé en Côte d'Ivoire par rapport aux autres pays producteurs ?"
+      - id: Q295
+        texte: "Quelle part de la population ivoirienne n'a pas les moyens d'une alimentation saine ?"
+      - id: Q284
+        texte: "Comment la Côte d'Ivoire se situe-t-elle par rapport aux références mondiales des systèmes alimentaires ?"
+      - id: Q296
+        texte: "Que dit le Food Systems Dashboard sur le travail des enfants en Côte d'Ivoire ?"

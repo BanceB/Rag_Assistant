@@ -33,7 +33,14 @@ uv run python -m rag_assistant.ingestion
 uv run python -m rag_assistant.Backend.core
 ```
 
-L'interface web (Streamlit) arrivera à l'étape 9 de la feuille de route.
+Lancer l'interface web (Streamlit) :
+
+```bash
+uv run streamlit run src/rag_assistant/app/main.py
+```
+
+Puis ouvrir <http://localhost:8501> pour la discussion, ou <http://localhost:8501/admin> pour
+l'administration (mot de passe `ADMIN_PASSWORD`, à définir dans `.env`).
 
 ## Structure du dépôt
 

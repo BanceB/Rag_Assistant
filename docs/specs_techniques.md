@@ -291,6 +291,23 @@ Ce test ne donne au modèle que les questions précédentes, sans les réponses 
 
 Coût et temps : la reformulation ajoute 1,7 s en médiane (de 1,2 à 3,5 s) aux seules questions de suivi, pour un coût négligeable. C'est le principal levier de temps pour l'étape 11 (prompt plus court, ou reformulation sautée quand la question nomme déjà son sujet).
 
+### D12. Interface de discussion et d'administration — **décidé**
+
+Code : `src/rag_assistant/app/` (`main.py` lance l'application ; `chat.py`, `admin.py` ; `affichage.py` regroupe la logique testable sans Streamlit) ; questions proposées dans `config/suggestions.yaml` ; thème dans `.streamlit/config.toml`. Lancement : `uv run streamlit run src/rag_assistant/app/main.py`.
+
+- **Deux pages séparées** : la discussion (`/`) et l'administration (`/admin`), absente de tout menu et protégée par le mot de passe `ADMIN_PASSWORD` du fichier `.env` (comparaison en temps constant, blocage de 5 minutes après 5 erreurs).
+- **Pas de compte utilisateur** : l'historique vit dans la session du navigateur et disparaît à la fermeture de l'onglet. Le profil (« Statut ») est facultatif et n'adapte que le vocabulaire.
+- **Questions proposées** : 5 catégories de 5 questions, toutes tirées du jeu d'évaluation (le corpus y répond) ; un clic pose la question.
+- **Réponse au fil de l'eau** : le texte s'affiche dès le premier mot (citations, ligne ETIQUETTES et mots convenus masqués pendant l'écriture), puis il est remplacé par la version vérifiée par les garde-fous (citations renumérotées, sources construites par le code, avertissements). Le temps ressenti est donc celui du premier mot, mesuré à l'étape 7.
+- **Limites** : 500 caractères par question, 30 questions par heure et par session (protection du budget API, à compléter par une limite par adresse au déploiement).
+- **Avis** 👍/👎 sous chaque réponse, gardés dans la session à cette étape ; leur enregistrement relève de l'étape 10 (journal, RGPD).
+- **Transparence IA** (§13 du cahier des charges) : sur l'écran d'accueil, encadré « Vous échangez avec une intelligence artificielle. Elle ne remplace pas un technicien de l'ANADER ou du CNRA. ». Le cahier des charges demande d'informer clairement l'utilisateur : cet encadré est la seule mention IA de la page de discussion.
+- **En-tête** : barre fixée en haut de la zone de discussion (logo, nom, bouton de thème), sans sous-titre ; elle s’arrête au bord du panneau, qui garde toute la hauteur, et suit sa largeur quand on le replie ou l’élargit (petit script).
+- **Thème sombre** de la maquette V2 par défaut (fond #1F1E1B, accent #E69A57), **mode clair** au choix par un bouton de l’en-tête ; le choix est gardé dans l’adresse (`?theme=clair`). Streamlit ne permettant pas de changer de thème depuis le code, le mode clair est une feuille de style qui recouvre le thème sombre. Statistiques d’usage de Streamlit désactivées.
+- **Messages** : la question de la personne dans une bulle arrondie décalée à droite, sans avatar ; la réponse de l'assistant à gauche, avec le logo.
+- **Profil par défaut** : « Agriculteur ou agricultrice », public principal.
+- **Écran d'accueil** de la maquette V2 : logo, salutation et consigne centrés (titre en Bricolage Grotesque, chargée depuis Google Fonts, sinon police système).
+
 ## 4. Sources
 
 - Tarifs Claude : <https://platform.claude.com/docs/en/about-claude/pricing>
@@ -300,4 +317,6 @@ Coût et temps : la reformulation ajoute 1,7 s en médiane (de 1,2 à 3,5 s) aux
 - Rerankers Voyage AI : <https://docs.voyageai.com/docs/reranker>
 - Claude Sonnet 5.5 (paramètres refusés, réflexion) : <https://platform.claude.com/docs/en/models/sonnet-5-5/overview>
 - Paramètre `effort` : <https://platform.claude.com/docs/en/build-with-claude/effort>
+- Streamlit, navigation multipage (`st.navigation`, `st.Page`) : <https://docs.streamlit.io/develop/api-reference/navigation/st.navigation>
+- Streamlit, réglages et thèmes (`config.toml`) : <https://docs.streamlit.io/develop/api-reference/configuration/config.toml>
 - Offre Pinecone Starter : <https://www.pinecone.io/pricing/>

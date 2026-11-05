@@ -1,0 +1,34 @@
+# Réglages de l'interface Streamlit (étape 9). Lus au lancement depuis la racine du projet.
+
+[browser]
+# Pas de statistiques d'usage envoyées à Streamlit (données des utilisateurs, RGPD)
+gatherUsageStats = false
+
+[client]
+# Masque les menus de développement (déploiement, réexécution) ; garde les réglages d'affichage
+toolbarMode = "minimal"
+# La navigation est faite par l'application : la page /admin n'apparaît dans aucun menu
+showSidebarNavigation = false
+
+[server]
+# Taille maximale d'un envoi : aucun envoi de fichier n'est prévu dans le chat
+maxUploadSize = 1
+
+[theme]
+# Couleurs de la maquette V2 (thème sombre). Contrastes du texte vérifiés sur la maquette.
+base = "dark"
+font = "'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+baseRadius = "10px"
+showWidgetBorder = true
+primaryColor = "#E69A57"
+backgroundColor = "#1F1E1B"
+secondaryBackgroundColor = "#2A2925"
+textColor = "#ECE8E0"
+borderColor = "#3A3833"
+linkColor = "#E69A57"
+
+[theme.sidebar]
+backgroundColor = "#181715"
+secondaryBackgroundColor = "#2A2925"
+textColor = "#ECE8E0"
+borderColor = "#3A3833"

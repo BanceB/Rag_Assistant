@@ -164,6 +164,7 @@ class Assistant:
         question: str,
         historique: list[dict] | None = None,
         profil: str | None = None,
+        au_fil: Callable[[str], None] | None = None,
     ) -> Reponse:
         """Répond à la question avec un seul appel au modèle (aucun en cas de refus avant).
 
@@ -171,6 +172,10 @@ class Assistant:
         S'il n'est pas vide, la question est d'abord reformulée en question autonome par le
         modèle rapide, et c'est elle qui sert à la recherche ; le modèle qui rédige reçoit
         l'historique court et la question telle que la personne l'a posée.
+
+        `au_fil` (étape 9) reçoit le texte brut du modèle morceau par morceau, pour l'afficher
+        pendant qu'il s'écrit. Ce texte n'a pas encore passé les garde-fous : l'interface le
+        remplace par la réponse finale (`Reponse.texte`) dès qu'elle est prête.
         """
         debut = time.perf_counter()
         latences: dict = {}
@@ -207,7 +212,10 @@ class Assistant:
             }
         )
         t = time.perf_counter()
-        brut, usage = self.generateur(prompts.SYSTEME, messages)
+        if au_fil:
+            brut, usage = self.generateur(prompts.SYSTEME, messages, au_fil=au_fil)
+        else:
+            brut, usage = self.generateur(prompts.SYSTEME, messages)
         latences["generation"] = round(time.perf_counter() - t, 3)
         if "premier_mot_s" in usage:  # délai avant le premier mot, compté depuis la question
             latences["premier_mot"] = round(t - debut + usage.pop("premier_mot_s"), 3)
