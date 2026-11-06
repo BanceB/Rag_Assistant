@@ -67,9 +67,12 @@ STYLES = f"""
     .st-key-entete>[data-testid="stElementContainer"]:first-child>*{{max-width:100%}}
 }}
 .st-key-entete>[data-testid="stElementContainer"]:first-child>*{{width:auto!important;
-  max-width:calc(100% - 2 * var(--place-bouton,190px))}}
-.st-key-bascule_theme{{flex:none!important;width:auto!important;margin-left:auto}}
-.st-key-bascule_theme button{{white-space:nowrap}}
+  max-width:calc(100% - 2 * var(--place-bouton,300px))}}
+.st-key-bascule_theme,.st-key-bouton_suggestion{{flex:none!important;width:auto!important}}
+.st-key-entete>[data-testid="stElementContainer"]:nth-child(2){{margin-left:auto}}
+.st-key-bascule_theme button,.st-key-bouton_suggestion button{{white-space:nowrap}}
+/* texte d'invite de la zone de saisie : lisible (Streamlit l'éclaircit beaucoup) */
+[data-testid="stChatInput"] textarea::placeholder{{color:var(--doux)!important;opacity:1!important}}
 /* l'en-tête commence au bord droit du panneau, qui garde toute la hauteur ; la barre de
    Streamlit (bouton » du panneau replié) et la discussion passent sous l'en-tête */
 @media (min-width:641px){{
@@ -115,12 +118,18 @@ STYLES = f"""
 @media (max-width:640px){{
   :root{{--h-entete:60px}}
   .st-key-entete{{padding:0 12px}}
-  .entete img{{width:32px;height:32px}}
-  .entete .titre{{font-size:1.05rem}}
+  .entete{{gap:8px}}
+  .entete img{{width:28px;height:28px}}
+  .entete .titre{{font-size:.98rem}}
+  .st-key-entete{{gap:6px!important}}
   .entete .sous-titre{{font-size:.75rem}}
-  .st-key-bascule_theme button p{{display:none}}
-  .st-key-bascule_theme button{{padding:0 10px;min-width:40px}}
-  :root{{--place-bouton:62px}}
+  .st-key-bascule_theme button p,.st-key-bouton_suggestion button p{{display:none}}
+  .st-key-bascule_theme button,.st-key-bouton_suggestion button{{padding:0 8px;min-width:38px}}
+  :root{{--place-bouton:110px}}
+  /* téléphone : pas la place de centrer le titre entre deux boutons, il se cale à gauche */
+  .st-key-entete>[data-testid="stElementContainer"]:first-child{{position:static!important;
+    justify-content:flex-start;min-width:0;flex:1 1 auto}}
+  .st-key-entete>[data-testid="stElementContainer"]:first-child>*{{max-width:100%}}
 }}
 </style>
 """
@@ -162,10 +171,31 @@ MODE_CLAIR = """
   color:var(--texte)!important}
 .stApp [data-baseweb="input"] button{background:var(--carte)!important}
 [data-testid="stChatInput"]>div{background:var(--carte)!important;border-color:var(--bord)!important}
-[data-testid="stChatInput"] textarea::placeholder{color:var(--doux)!important}
+[data-testid="stChatInput"] textarea::placeholder{color:var(--doux)!important;opacity:1!important}
 [data-baseweb="popover"] ul,[data-baseweb="popover"] li{background:var(--carte)!important;
   color:var(--texte)!important}
 [data-baseweb="popover"] li:hover{background:var(--survol)!important}
+[data-testid="stToast"]{background:var(--carte)!important;border:1px solid var(--bord);
+  box-shadow:0 8px 24px rgba(33,31,27,.14)!important}
+[data-testid="stToast"] *{color:var(--texte)!important}
+[data-testid="stDialog"] [role="dialog"]{background:var(--fond)!important;
+  border:1px solid var(--bord);box-shadow:0 12px 40px rgba(33,31,27,.18)!important}
+[data-testid="stDialog"] [role="dialog"] :is(p,span,label,h1,h2,h3,div,strong,small){
+  color:var(--texte)}
+[data-testid="stDialog"] [role="dialog"] svg{color:var(--texte)}
+[data-testid="stDialog"] [data-testid="stCaptionContainer"],
+[data-testid="stDialog"] [data-testid="stCaptionContainer"] *{color:var(--doux)!important}
+[data-testid="stDialog"] [data-baseweb="textarea"],[data-testid="stDialog"] textarea{
+  background:var(--carte)!important;border-color:var(--bord)!important;color:var(--texte)!important}
+[data-testid="stDialog"] [data-testid="stButtonGroup"] button{background:var(--carte)!important;
+  border-color:var(--bord)!important}
+[data-testid="stDialog"] [data-testid="stButtonGroup"] button[aria-checked="true"]{
+  background:#F3E4D6!important;border-color:var(--accent)!important}
+[data-testid="stDialog"] [data-testid="stButtonGroup"] button[aria-checked="true"] *{
+  color:var(--accent)!important}
+[data-testid="stDialog"] button[kind="primaryFormSubmit"]{background:var(--accent)!important;
+  border-color:var(--accent)!important}
+[data-testid="stDialog"] button[kind="primaryFormSubmit"] *{color:#fff!important}
 [data-testid="stSelectboxVirtualDropdown"]{background:var(--carte)!important;
   border:1px solid var(--bord);box-shadow:0 6px 18px rgba(33,31,27,.12)!important}
 [data-testid="stSelectboxVirtualDropdown"] [role="option"],
@@ -272,8 +302,11 @@ CALAGE = """
 """
 
 
-def en_tete(sous_titre: str | None = None) -> None:
-    """Zone 1 de la maquette : logo, nom, sous-titre facultatif, bouton mode clair/sombre."""
+def en_tete(sous_titre: str | None = None, sur_suggestion=None) -> None:
+    """Zone 1 de la maquette : logo, nom, sous-titre facultatif, boutons à droite.
+
+    `sur_suggestion` : fonction appelée au clic sur « Suggestion » (page de chat seulement).
+    """
     st.html(STYLES)
     st.html(TRANSITION_THEME)
     st.html(CALAGE, unsafe_allow_javascript=True)
@@ -287,6 +320,12 @@ def en_tete(sous_titre: str | None = None) -> None:
             + "</div></div>",
             width="stretch",
         )
+        if sur_suggestion is not None and st.button(
+            "Suggestion",
+            icon=":material/lightbulb:",
+            key="bouton_suggestion",
+        ):
+            sur_suggestion()
         st.button(
             "Mode sombre" if clair else "Mode clair",
             icon=":material/dark_mode:" if clair else ":material/light_mode:",

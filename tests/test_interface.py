@@ -294,3 +294,12 @@ def test_cache_reponse_instantanee_puis_secours_en_panne(base, tmp_path):  # noq
     assert not at.error and any("ne répond pas" in c.value for c in at.caption)
     stats = journal.statistiques()
     assert (stats["depuis_cache"], stats["secours"], stats["erreurs"]) == (1, 1, 0)
+
+
+def test_bouton_suggestion_dans_l_en_tete_du_chat_seulement(base, monkeypatch):  # noqa: F811
+    a, _ = assistant(base, "nervures", "Swollen shoot [1].")
+    at = lancer(a)
+    assert at.button(key="bouton_suggestion").label == "Suggestion"
+    monkeypatch.setenv("ADMIN_PASSWORD", "essai-admin")
+    admin = AppTest.from_string("from rag_assistant.app import admin\nadmin.page()").run()
+    assert all(b.key != "bouton_suggestion" for b in admin.button)

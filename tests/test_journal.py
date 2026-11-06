@@ -120,3 +120,17 @@ def test_base_d_avant_le_cache_mise_a_jour(tmp_path):
     journal.enregistrer("s1", reponse(depuis_cache={"date": "2026-11-05", "secours": False}))
     assert journal.derniers()[0]["cache"] == 1
     assert journal.statistiques()["latence_mediane"] is None  # le cache n'entre pas dans les temps
+
+
+def test_suggestions_anonymisees_purgees_et_exportees(journal, monkeypatch):
+    journal.ajouter_suggestion("s1", "Question qui manque", "Parler du café ? Mon 0707070707")
+    assert journal.suggestions()[0]["texte"] == "Parler du café ? Mon [numéro]"
+    with pytest.raises(ValueError):
+        journal.ajouter_suggestion("s1", "Idée", "   ")
+    assert journal.exporter_suggestions_csv().splitlines()[0] == "id,horodatage,session,genre,texte"
+    ancien = j.maintenant() - timedelta(days=120)
+    monkeypatch.setattr(j, "maintenant", lambda: ancien)
+    journal.ajouter_suggestion("s2", "Idée", "Une vieille idée")
+    monkeypatch.undo()
+    assert journal.purger() == 1 and len(journal.suggestions()) == 1
+    assert journal.tout_effacer() == 1 and journal.suggestions() == []

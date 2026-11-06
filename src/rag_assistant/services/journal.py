@@ -5,7 +5,8 @@ Ce qui est enregistré pour chaque question (table `echanges`) :
   cités (doc_id et page), score du reranker, temps de réponse, tokens, erreur éventuelle ;
 - le texte de la question et de la réponse, seulement si la personne a donné son accord,
   après masquage des courriels et des numéros de téléphone.
-Et pour chaque avis 👍/👎 (table `avis`) : la valeur, reliée à l'échange.
+Et pour chaque avis 👍/👎 (table `avis`) : la valeur, reliée à l'échange. Les suggestions
+libres des visiteurs (table `suggestions`) : un type et un texte, anonymisé de la même façon.
 
 Protection des données (RGPD, §7.2 et §13 du cahier des charges) :
 - minimisation : ni nom, ni adresse IP, ni navigateur ; la session est un identifiant tiré
@@ -57,6 +58,14 @@ CREATE TABLE IF NOT EXISTS echanges (
     cache INTEGER NOT NULL DEFAULT 0   -- 1 : réponse servie par le cache, 2 : cache de secours
 );
 CREATE INDEX IF NOT EXISTS echanges_horodatage ON echanges (horodatage);
+CREATE TABLE IF NOT EXISTS suggestions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    horodatage TEXT NOT NULL,
+    session TEXT NOT NULL,             -- même identifiant aléatoire que les échanges
+    genre TEXT NOT NULL,               -- question qui manque, idée, problème
+    texte TEXT NOT NULL                -- anonymisé (numéros et courriels masqués)
+);
+CREATE INDEX IF NOT EXISTS suggestions_horodatage ON suggestions (horodatage);
 CREATE TABLE IF NOT EXISTS avis (
     echange_id INTEGER PRIMARY KEY REFERENCES echanges (id) ON DELETE CASCADE,
     horodatage TEXT NOT NULL,
@@ -69,6 +78,7 @@ SUITE_DE_CHIFFRES = re.compile(r"(?:\+|00)?\d[\d .\-/]{6,}\d")
 CHIFFRES_MIN_NUMERO = 8  # un téléphone ivoirien en compte 10 ; « 1 800 000 FCFA » en compte 7
 
 SEUIL_LATENCE_S = 5.0  # objectif du cahier des charges (§7.2)
+LONGUEUR_SUGGESTION = 1000  # caractères gardés au plus par suggestion
 
 
 def maintenant() -> datetime:
@@ -202,12 +212,14 @@ class Journal:
     # -------------------------------------------------------------- conservation
 
     def purger(self, jours: int | None = None) -> int:
-        """Supprime les échanges plus anciens que la durée de conservation (et leurs avis)."""
-        limite = maintenant() - timedelta(days=jours or self.conservation_jours)
+        """Supprime échanges (avec leurs avis) et suggestions plus anciens que la durée de
+        conservation. Renvoie le nombre de lignes supprimées."""
+        limite = (maintenant() - timedelta(days=jours or self.conservation_jours)).isoformat(
+            timespec="seconds"
+        )
         with self._connexion() as c:
-            n = c.execute(
-                "DELETE FROM echanges WHERE horodatage < ?", (limite.isoformat(timespec="seconds"),)
-            ).rowcount
+            n = c.execute("DELETE FROM echanges WHERE horodatage < ?", (limite,)).rowcount
+            n += c.execute("DELETE FROM suggestions WHERE horodatage < ?", (limite,)).rowcount
         self._derniere_purge = time.time()
         return n
 
@@ -217,7 +229,39 @@ class Journal:
 
     def tout_effacer(self) -> int:
         with self._connexion() as c:
-            return c.execute("DELETE FROM echanges").rowcount
+            n = c.execute("DELETE FROM echanges").rowcount
+            return n + c.execute("DELETE FROM suggestions").rowcount
+
+    # -------------------------------------------------------------- suggestions des visiteurs
+
+    def ajouter_suggestion(self, session: str, genre: str, texte: str) -> int:
+        """Suggestion libre envoyée depuis l'en-tête du chat (F9), sans nom, anonymisée."""
+        texte = (anonymiser(texte.strip()) or "")[:LONGUEUR_SUGGESTION]
+        if not texte:
+            raise ValueError("suggestion vide")
+        self._purger_si_besoin()
+        with self._connexion() as c:
+            return c.execute(
+                "INSERT INTO suggestions (horodatage, session, genre, texte) VALUES (?, ?, ?, ?)",
+                (maintenant().isoformat(timespec="seconds"), session, genre, texte),
+            ).lastrowid
+
+    def suggestions(self, n: int = 200) -> list[dict]:
+        """Les suggestions, de la plus récente à la plus ancienne."""
+        with self._connexion() as c:
+            lignes = c.execute(
+                "SELECT * FROM suggestions ORDER BY id DESC LIMIT ?", (n,)
+            ).fetchall()
+        return [dict(r) for r in lignes]
+
+    def exporter_suggestions_csv(self) -> str:
+        lignes = self.suggestions(100_000)
+        sortie = io.StringIO()
+        if lignes:
+            ecrivain = csv.DictWriter(sortie, fieldnames=list(lignes[0].keys()))
+            ecrivain.writeheader()
+            ecrivain.writerows(lignes)
+        return sortie.getvalue()
 
     # -------------------------------------------------------------- lecture
 

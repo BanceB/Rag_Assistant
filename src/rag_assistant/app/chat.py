@@ -132,6 +132,45 @@ def _assistant() -> Assistant | None:
     return _assistant_partage()
 
 
+# ------------------------------------------------------------------ suggestions (en-tête)
+
+GENRES_SUGGESTION = ("Question qui manque", "Idée", "Problème")
+SUGGESTIONS_PAR_SESSION = 5  # au-delà, on remercie sans enregistrer (évite les abus)
+
+
+@st.dialog("Votre suggestion", icon=":material/lightbulb:")
+def fenetre_suggestion() -> None:
+    """Fenêtre ouverte par le bouton « Suggestion » de l'en-tête (F9, retours des visiteurs)."""
+    ss = st.session_state
+    st.caption(
+        "Une question à laquelle l'assistant devrait savoir répondre, une idée, un problème ? "
+        "N'écrivez pas votre nom : les numéros et courriels sont masqués, la suggestion est "
+        "gardée 90 jours."
+    )
+    # un formulaire : le texte saisi est bien transmis au clic sur « Envoyer »
+    with st.form("form_suggestion", border=False):
+        genre = st.pills("Type", GENRES_SUGGESTION, default=GENRES_SUGGESTION[0])
+        texte = st.text_area(
+            "Votre message", max_chars=1000, height=140,
+            placeholder="Par exemple : comment traiter la pourriture brune des cabosses ?",
+        )  # fmt: skip
+        envoye = st.form_submit_button("Envoyer", type="primary", icon=":material/send:")
+    if not envoye:
+        return
+    if not texte.strip():
+        st.warning("Écrivez quelques mots avant d'envoyer.", icon=":material/edit:")
+        return
+    journal = journal_partage()
+    if journal is not None and ss.get("nb_suggestions", 0) < SUGGESTIONS_PAR_SESSION:
+        try:
+            journal.ajouter_suggestion(ss["session_id"], genre or GENRES_SUGGESTION[1], texte)
+            ss["nb_suggestions"] = ss.get("nb_suggestions", 0) + 1
+        except Exception:
+            log.exception("Suggestion non enregistrée")
+    ss["suggestion_envoyee"] = True
+    st.rerun()
+
+
 # ------------------------------------------------------------------ zone 2 : panneau
 
 
@@ -390,7 +429,9 @@ def page() -> None:
     _etat()
     panneau()
     assistant = _assistant()
-    en_tete()
+    en_tete(sur_suggestion=fenetre_suggestion)
+    if st.session_state.pop("suggestion_envoyee", False):
+        st.toast("Merci ! Votre suggestion a bien été envoyée.", icon=":material/check_circle:")
     st.html(STYLES_CHAT)
     ss = st.session_state
     zone_accueil = st.empty()

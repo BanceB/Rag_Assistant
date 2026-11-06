@@ -245,7 +245,8 @@ def _donnees(journal) -> None:
             f"- Conservation : **{jours} jours**, puis suppression automatique.\n"
             "- Le texte des questions n'est gardé qu'avec l'accord de la personne (option "
             "« Partager mes questions »), après masquage des numéros et des courriels.\n"
-            "- Aucun nom, aucune adresse IP : la session est un identifiant tiré au hasard."
+            "- Aucun nom, aucune adresse IP : la session est un identifiant tiré au hasard.\n"
+            "- Les suggestions des visiteurs suivent les mêmes règles (masquage, 90 jours)."
         )
         st.download_button(
             "Exporter le journal (CSV)",
@@ -271,9 +272,46 @@ def _donnees(journal) -> None:
             st.success(f"{journal.tout_effacer()} échange(s) effacé(s).")
 
 
+def _suggestions_section() -> None:
+    journal = journal_partage()
+    if journal is None:
+        return
+    st.markdown("#### Suggestions des visiteurs (F9)")
+    suggestions = journal.suggestions()
+    if not suggestions:
+        st.caption("Aucune suggestion pour l'instant (bouton « Suggestion » de l'en-tête du chat).")
+        return
+    par_genre = {}
+    for s in suggestions:
+        par_genre[s["genre"]] = par_genre.get(s["genre"], 0) + 1
+    st.caption(
+        f"{len(suggestions)} suggestion(s) : "
+        + ", ".join(f"{n} « {g} »" for g, n in sorted(par_genre.items(), key=lambda x: -x[1]))
+    )
+    _tableau(
+        [
+            {
+                "Date (UTC)": s["horodatage"].replace("T", " ")[:16],
+                "Type": s["genre"],
+                "Suggestion": s["texte"],
+            }
+            for s in suggestions
+        ],
+        hauteur=320 if len(suggestions) > 8 else None,
+    )
+    st.download_button(
+        "Exporter les suggestions (CSV)",
+        journal.exporter_suggestions_csv(),
+        file_name="suggestions_assistant_cacao.csv",
+        mime="text/csv",
+        icon=":material/download:",
+    )
+
+
 def _tableau_de_bord() -> None:
     st.markdown("### Administration")
     _journal_section()
+    _suggestions_section()
 
     st.markdown("#### Documents du corpus (F7)")
     documents = _catalogue()
