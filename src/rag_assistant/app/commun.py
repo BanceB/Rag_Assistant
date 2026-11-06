@@ -153,6 +153,22 @@ MODE_CLAIR = """
 [data-testid="stAlertContainer"]:has([data-testid="stAlertContentInfo"]){background:var(--info-fond)!important}
 [data-testid="stVerticalBlockBorderWrapper"],[data-testid="stForm"]{border-color:var(--bord)!important}
 hr{border-color:var(--bord)!important}
+.stApp [data-testid="stButtonGroup"] button{background:var(--carte)!important;
+  border-color:var(--bord)!important}
+.stApp [data-testid="stButtonGroup"] button:hover{background:var(--survol)!important}
+.stApp [data-testid="stButtonGroup"] button[aria-checked="true"]{background:#F3E4D6!important;
+  border-color:var(--accent)!important}
+.stApp [data-testid="stButtonGroup"] button[aria-checked="true"] *{color:var(--accent)!important}
+.stApp code{background:var(--survol)!important;color:var(--texte)!important}
+.stApp [data-testid="stMetric"]{border-color:var(--bord)!important}
+[data-testid="stElementToolbar"]{background:transparent!important}
+[data-testid="stElementToolbarButtonContainer"]{background:var(--carte)!important}
+[data-testid="stTable"] table{background:var(--carte)!important;border-color:var(--bord)!important}
+[data-testid="stTable"] th{background:var(--panneau)!important;color:var(--doux)!important}
+[data-testid="stTable"] th,[data-testid="stTable"] td{border-color:var(--bord)!important;
+  color:var(--texte)}
+[data-testid="stElementToolbarButtonContainer"]{border:1px solid var(--bord);border-radius:8px}
+[data-testid="stElementToolbar"] svg{color:var(--doux)!important}
 [data-testid="stTooltipIcon"] button,[data-testid="stTooltipIcon"] svg{color:var(--doux)!important;
   stroke:var(--doux)!important}
 .st-key-consentement label>div:first-of-type{background:#C9C3B6!important}

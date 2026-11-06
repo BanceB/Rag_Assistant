@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 
 from rag_assistant.app.affichage import mot_de_passe_valide
 from rag_assistant.app.chat import PROFILS
-from rag_assistant.app.commun import cache_partage, en_tete, journal_partage
+from rag_assistant.app.commun import cache_partage, en_tete, journal_partage, mode_clair
 from rag_assistant.config import PROJECT_ROOT, get_settings
 
 ESSAIS_MAX = 5
@@ -144,32 +144,28 @@ def _journal_section() -> None:
     if len(stats["par_jour"]) > 1:
         # une seule série : une couleur (l'accent), pas de légende ; l'infobulle donne le chiffre
         st.markdown("**Questions par jour**")
-        st.bar_chart(
-            {
-                "Jour": [f"{j[8:10]}/{j[5:7]}" for j in stats["par_jour"]],
-                "Questions": list(stats["par_jour"].values()),
-            },
-            x="Jour", y="Questions", x_label="", y_label="", color="#E69A57", height=200,
-            sort=False,  # ordre chronologique (sinon « 30/10 » passerait après « 05/11 »)
-        )  # fmt: skip
+        st.altair_chart(
+            _graphique_par_jour(stats["par_jour"]), use_container_width=True, theme=None
+        )
 
     gauche, droite = st.columns(2)
     with gauche:
         st.markdown("**Refus par motif**")
         if stats["refus_par_motif"]:
-            st.dataframe(
-                [{"Motif": MOTIFS.get(m, m), "Nombre": n} for m, n in stats["refus_par_motif"].items()],
-                hide_index=True, use_container_width=True,
-            )  # fmt: skip
+            _tableau(
+                [
+                    {"Motif": MOTIFS.get(m, m), "Nombre": n}
+                    for m, n in stats["refus_par_motif"].items()
+                ]
+            )
         else:
             st.caption("Aucun refus.")
     with droite:
         st.markdown("**Documents les plus cités**")
         if stats["documents_cites"]:
-            st.dataframe(
-                [{"Document": doc, "Citations": n} for doc, n in stats["documents_cites"].items()],
-                hide_index=True, use_container_width=True,
-            )  # fmt: skip
+            _tableau(
+                [{"Document": doc, "Citations": n} for doc, n in stats["documents_cites"].items()]
+            )
         else:
             st.caption("Aucune source citée.")
 
@@ -178,8 +174,46 @@ def _journal_section() -> None:
         f"{stats['consentements']} question(s) sur {stats['questions'] - stats['erreurs']} "
         "partagée(s) avec accord ; les autres n'apparaissent que par leurs chiffres."
     )
-    st.dataframe(_lignes_recentes(journal), hide_index=True, use_container_width=True)
+    _tableau(_lignes_recentes(journal), hauteur=420)
     _donnees(journal)
+
+
+def _graphique_par_jour(par_jour: dict[str, int]):
+    """Barres des questions par jour, aux couleurs du mode choisi (fond transparent)."""
+    import altair as alt
+
+    clair = mode_clair()
+    barre, texte, grille = ("#A9541B", "#5B554B", "#D8D3C8") if clair else (
+        "#E69A57", "#B1AA9E", "#3A3833"
+    )  # fmt: skip
+    donnees = alt.Data(
+        values=[{"Jour": f"{j[8:10]}/{j[5:7]}", "Questions": n} for j, n in par_jour.items()]
+    )
+    return (
+        alt.Chart(donnees, height=200)
+        .mark_bar(color=barre, cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
+        .encode(
+            x=alt.X("Jour:N", sort=None, title=None, axis=alt.Axis(labelAngle=0)),
+            y=alt.Y("Questions:Q", title=None, axis=alt.Axis(tickMinStep=1)),
+            tooltip=["Jour:N", "Questions:Q"],
+        )
+        .configure(background="transparent")
+        .configure_view(stroke=None)
+        .configure_axis(labelColor=texte, gridColor=grille, domainColor=grille, tickColor=grille)
+    )
+
+
+def _tableau(lignes: list[dict], hauteur: int | None = None) -> None:
+    """Tableau interactif en mode sombre ; en mode clair, tableau HTML (le tableau interactif
+    de Streamlit est dessiné dans un canevas qui garde les couleurs du thème sombre)."""
+    if not mode_clair():
+        st.dataframe(lignes, hide_index=True, use_container_width=True, height=hauteur or "auto")
+        return
+    import pandas as pd
+
+    tableau = pd.DataFrame(lignes).style.hide(axis="index")
+    with st.container(height=hauteur, border=False) if hauteur else st.container():
+        st.table(tableau)
 
 
 def _lignes_recentes(journal) -> list[dict]:
@@ -251,7 +285,7 @@ def _tableau_de_bord() -> None:
     st.caption("Lecture seule pour l'instant : l'ajout et le retrait passent encore par la ligne "
                "de commande (`rag_assistant.ingestion.pipeline`).")  # fmt: skip
     if documents:
-        st.dataframe(documents, hide_index=True, use_container_width=True)
+        _tableau(documents, hauteur=420)
 
     if st.button("Se déconnecter", icon=":material/logout:"):
         st.session_state["admin"] = False
