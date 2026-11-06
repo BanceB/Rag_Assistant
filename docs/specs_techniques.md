@@ -97,6 +97,8 @@ Un assistant de conformité doit toujours s'appuyer sur ses sources : la chaîne
 
 **Décision :** Sonnet 5.5 pour rédiger les réponses, Haiku 5.5 pour reformuler les questions de suivi. Comparer Sonnet et Haiku en génération à l'étape 11 (qualité, latence < 5 s). Mentionner l'auto-hébergement comme perspective de souveraineté.
 
+**Révision du 6 novembre 2026 (étape 11, D15) :** Haiku 5.5 rédige aussi les réponses ; mesuré à 0,44 $ pour 1 000 questions (4 400 tokens d'entrée et 270 de sortie par réponse).
+
 ### D3. Modèle d'embedding — **décidé**
 
 | Option | Prix | Dimension | Multilingue | Remarque |
@@ -225,7 +227,7 @@ Les questions « absentes du corpus » portent sur le sujet (le cacao, l'EUDR) s
 
 Temps : la recherche complète prend 0,95 s en moyenne (1,43 s au 95e centile), ce qui laisse environ 3,5 s à la génération pour tenir les 5 s du cahier des charges.
 
-### D10. Génération et garde-fous — **décidé (réglages à confirmer à l'étape 11)**
+### D10. Génération et garde-fous — **décidé (réglages confirmés à l'étape 11, voir D15)**
 
 Code : `rag/prompts.py` (consignes), `rag/guardrails.py` (garde-fous), `rag/chain.py` (chaîne) ; essai : `uv run python -m rag_assistant.evaluation.reponses` (résultats dans `eval/resultats/reponses_2026-11-02*`).
 
@@ -330,6 +332,35 @@ Code : `services/cache.py` (table `cache_reponses` de `data/app.db`), branché d
 - **Mode dégradé** : si le service ne répond pas, une réponse déjà donnée à la même question est servie quelle que soit son ancienneté, avec la mention « Le service ne répond pas pour l'instant : voici la réponse donnée à cette question le … ».
 - **Mesures** : le journal note les réponses du cache (et celles de secours) ; elles sont exclues des temps de réponse du tableau de bord, pour ne pas flatter le pipeline.
 - **Préchauffage** : `uv run python -m rag_assistant.services.cache --prechauffer` pose les 25 questions proposées (profil agriculteur) et garde les réponses, pour environ 25 appels à Claude.
+
+### D15. Choix du modèle et des réglages de génération (étape 11) — **décidé**
+
+Mesure : `uv run python -m rag_assistant.evaluation.variantes` (code `evaluation/variantes.py`), les 5 et 6 novembre 2026, sur l'échantillon de l'étape 7 (71 questions : 28 hors corpus, 13 demandes de décision, 30 normales). Chaque variante ne change qu'un réglage. Résultats : `eval/resultats/variante_*_2026-11-05_17h10.jsonl` et `comparaison_2026-11-05_17h10.md`.
+
+| Mesure | reference (Sonnet, low, k = 4, 100 mots) | haiku | effort_medium | k3 | court (70 mots) |
+| --- | --- | --- | --- | --- | --- |
+| Hors corpus détectées (cible ≥ 90 %) | 96 % | 93 % | 96 % | 100 % | 100 % |
+| Questions avec réponse refusées à tort | 2 % | 2 % | 2 % | 2 % | 2 % |
+| Réponses avec au moins une source | 100 % | 100 % | 100 % | 100 % | 100 % |
+| … dont un document attendu cité | 95 % | 95 % | 95 % | 93 % | 95 % |
+| Avertissement quand il est attendu | 86 % | 93 % | 93 % | 93 % | 93 % |
+| Avertissement non attendu | 32 % | 18 % | 21 % | 21 % | 21 % |
+| Réponses en 5 s ou moins (cible) | 91 % | **100 %** | 93 % | 96 % | 87 %* |
+| Temps médian / 95e centile | 4,2 / 6,2 s | **2,5 / 3,4 s** | 3,9 / 5,1 s | 3,8 / 4,7 s | 3,7 / 13,2 s* |
+| Premier mot (médiane) | 1,9 s | 1,4 s | 1,6 s | 1,6 s | 1,9 s |
+| Longueur médiane des réponses | 119 mots | 98 mots | 117 mots | 120 mots | 87 mots |
+| Phrases factuelles sans citation (indicateur approché) | 26 % | 17 % | 31 % | 40 % | 28 % |
+| Coût pour 1 000 questions | 9,39 $ | **0,44 $** | 9,15 $ | 8,07 $ | 8,75 $ |
+
+\* `court` a été interrompue (crédit API épuisé) puis reprise : deux réponses juste après la reprise ont pris 56 et 83 s, ce qui fausse son 95e centile ; sa médiane reste valable.
+
+Lecture :
+- **Bruit de mesure** : sur 28 questions hors corpus, une question vaut 3,6 points ; entre deux passages identiques de `reference` (2 et 5 novembre), la détection a varié de 100 % à 96 % et les avertissements en trop de 21 % à 32 %. Les écarts d'une ou deux questions entre variantes Sonnet ne sont donc pas significatifs.
+- **Haiku** est le seul écart net : toutes les réponses en 5 s ou moins, 1,7 s de moins en médiane, coût divisé par 21, avec les mêmes refus à tort (Q170), le même taux de documents attendus cités, et autant ou plus de citations. Ses deux questions hors corpus « non détectées » (Q173 vaccin ou drone contre le swollen shoot, Q179 café robusta) ont pourtant une réponse correcte qui dit que les documents n'en parlent pas, mais pas en première phrase : c'est l'étiquetage « partielle » qui manque, pas une invention.
+- **Limites relevées en relisant** : Haiku perd parfois une nuance utile (Q005 : la mise en garde « ne coupez rien avant d'avoir demandé conseil » a disparu) et ajoute une fois un nom absent des passages (Q264 : « Conseil du café-cacao », exact mais hors corpus). La relecture humaine des réponses (étape 7) se fera sur Haiku.
+- **effort_medium** ne gagne rien de mesurable ; **k3** fait baisser le taux de citation des phrases ; **court** raccourcit bien les réponses (87 mots) sans gain de temps net.
+
+Décision : **Claude Haiku 5.5 rédige les réponses** (`llm.model`), effort `low`, 4 passages, consigne de 100 mots inchangée. Sonnet 5.5 reste l'alternative documentée, à reprendre si la relecture humaine trouve Haiku moins juste ou moins clair. Changer de modèle change l'empreinte du cache (D14) : les réponses gardées sont recalculées, et le préchauffage coûte désormais moins de 0,02 $.
 
 ## 4. Sources
 

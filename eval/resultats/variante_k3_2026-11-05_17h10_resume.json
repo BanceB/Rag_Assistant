@@ -1,0 +1,42 @@
+{
+ "questions": 71,
+ "par_situation": {
+  "absent_du_corpus": 14,
+  "demande_de_decision": 13,
+  "hors_sujet": 14,
+  "normale": 30
+ },
+ "motifs": {
+  "réponse": 54,
+  "sous_le_seuil": 17
+ },
+ "hors_sujet_refusees": 1.0,
+ "absentes_refusees": 0.14285714285714285,
+ "hors_corpus_refusees": 0.5714285714285714,
+ "absentes_detectees": 1.0,
+ "hors_corpus_detectees": 1.0,
+ "avec_reponse_partielles": 0.0,
+ "avec_reponse_refusees": 0.023255813953488372,
+ "refus_a_tort": [
+  "Q170"
+ ],
+ "repondues_avec_source": 1.0,
+ "source_attendue_citee": 0.9285714285714286,
+ "avertissement_present_si_attendu": 0.9285714285714286,
+ "avertissement_en_trop": 0.21428571428571427,
+ "hors_corpus_acceptees": [],
+ "temps_moyen_s": 3.88,
+ "temps_p95_s": 4.65,
+ "temps_max_s": 7.04,
+ "premier_mot_median_s": 1.64,
+ "temps_median_s": 3.78,
+ "tokens": {
+  "entree": 197999,
+  "sortie": 17749
+ },
+ "cout_usd": 0.573,
+ "sous_5s": 0.9629629629629629,
+ "plus_de_5s": 2,
+ "cout_1000_questions_usd": 8.07,
+ "modele": "claude-sonnet-5-5"
+}

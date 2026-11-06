@@ -153,8 +153,10 @@ class Assistant:
         generateur: Generateur,
         fenetre: int = 6,
         reformulateur: Reformulateur | None = None,
+        systeme: str | None = None,
     ):
         self.recuperateur = recuperateur
+        self.systeme = systeme or prompts.SYSTEME  # consignes ; une autre version à l'étape 11
         self.generateur = generateur
         self.fenetre = fenetre  # messages d'historique transmis au modèle
         self.reformulateur = reformulateur
@@ -213,9 +215,9 @@ class Assistant:
         )
         t = time.perf_counter()
         if au_fil:
-            brut, usage = self.generateur(prompts.SYSTEME, messages, au_fil=au_fil)
+            brut, usage = self.generateur(self.systeme, messages, au_fil=au_fil)
         else:
-            brut, usage = self.generateur(prompts.SYSTEME, messages)
+            brut, usage = self.generateur(self.systeme, messages)
         latences["generation"] = round(time.perf_counter() - t, 3)
         if "premier_mot_s" in usage:  # délai avant le premier mot, compté depuis la question
             latences["premier_mot"] = round(t - debut + usage.pop("premier_mot_s"), 3)
@@ -258,10 +260,18 @@ class Conversation:
         return reponse
 
 
+def reflexion_pour(modele: str) -> str:
+    """Haiku 5.5 refuse « between_tools » (erreur 400) : sa réflexion est coupée."""
+    return "disabled" if "haiku" in modele else "between_tools"
+
+
 def creer_assistant(settings: Settings | None = None) -> Assistant:
     """Assistant configuré par settings.yaml (recherche, reranking, seuil, modèles, effort)."""
     settings = settings or get_settings()
-    generateur = GenerateurClaude(settings.llm.model, settings.llm.effort, settings.llm.max_tokens)
+    generateur = GenerateurClaude(
+        settings.llm.model, settings.llm.effort, settings.llm.max_tokens,
+        reflexion=reflexion_pour(settings.llm.model),
+    )  # fmt: skip
     # reformulation : modèle rapide, sans réflexion, réponse d'une ligne
     rapide = GenerateurClaude(settings.llm.model_rapide, "low", 200, reflexion="disabled")
     return Assistant(

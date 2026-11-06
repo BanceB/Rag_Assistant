@@ -18,6 +18,9 @@ Mesures :
 
 Lancer la mesure (appelle Voyage : environ 2 millions de tokens de reranking par modèle) :
     uv run python -m rag_assistant.evaluation.recherche
+Étape 11, comparer un autre découpage (indexer d'abord avec la même taille, par exemple
+`uv run python -m rag_assistant.ingestion.pipeline --taille 1000 --chevauchement 100`) :
+    uv run python -m rag_assistant.evaluation.recherche --taille 1000 --chevauchement 100 --rerankers rerank-2.5
 Refaire l'analyse à partir d'un fichier déjà produit :
     uv run python -m rag_assistant.evaluation.recherche --analyser eval/resultats/recherche_2026-11-02.jsonl
 """
@@ -290,7 +293,20 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--rerankers", default="rerank-2.5,rerank-3", help="modèles comparés")
     parser.add_argument("--limite", type=int, help="ne traiter que les N premières questions")
     parser.add_argument("--k", type=int, default=reglages.retrieval.k)
+    parser.add_argument("--taille", type=int, help="découpage à mesurer (collection déjà indexée)")
+    parser.add_argument("--chevauchement", type=int, help="chevauchement de ce découpage")
     args = parser.parse_args(argv)
+    if args.taille:
+        from dataclasses import replace
+
+        decoupage = replace(
+            reglages.chunking,
+            chunk_size=args.taille,
+            chunk_overlap=args.chevauchement
+            if args.chevauchement is not None
+            else args.taille // 10,
+        )
+        reglages = replace(reglages, chunking=decoupage)
     logging.basicConfig(level=logging.WARNING, format="%(message)s")
     logging.getLogger("rag_assistant").setLevel(logging.INFO)
 
@@ -309,10 +325,22 @@ def main(argv: list[str] | None = None) -> int:
         from rag_assistant.rag.retriever import RerankerVoyage, creer_recuperateur
 
         recuperateur = creer_recuperateur(reglages, sans_reranking=True)
+        if args.taille and recuperateur.base._collection.count() == 0:
+            c = reglages.chunking
+            print(
+                f"La collection du découpage {c.chunk_size}/{c.chunk_overlap} est vide. Indexer "
+                f"d'abord : uv run python -m rag_assistant.ingestion.pipeline --taille "
+                f"{c.chunk_size} --chevauchement {c.chunk_overlap}"
+            )
+            return 1
         rerankers = {m: RerankerVoyage(m) for m in filter(None, args.rerankers.split(","))}
         questions = lire_questions()[: args.limite]
+        c = reglages.chunking
+        suffixe = f"_{c.chunk_size}-{c.chunk_overlap}" if args.taille else ""
         sortie = (
-            reglages.chemins.questions_eval.parent / "resultats" / f"recherche_{date.today()}.jsonl"
+            reglages.chemins.questions_eval.parent
+            / "resultats"
+            / f"recherche_{date.today()}{suffixe}.jsonl"
         )
         print(f"{len(questions)} questions, rerankers : {list(rerankers)} → {sortie}")
         enregistrements = collecter(questions, recuperateur, rerankers, sortie)

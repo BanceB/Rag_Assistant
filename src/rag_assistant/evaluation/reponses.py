@@ -81,6 +81,7 @@ def collecter(questions: list[dict], assistant, sortie: Path) -> list[dict]:
                 "situation": q["situation"],
                 "avertissement_attendu": q.get("avertissement_attendu", False),
                 "doc_ids_attendus": q.get("doc_ids_attendus", []),
+                "modele": getattr(getattr(assistant, "generateur", None), "modele", None),
                 **reponse.en_dict(),
                 "en_texte": reponse.en_texte(),
             }

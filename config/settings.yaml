@@ -8,10 +8,13 @@ filiere: cacao
 
 llm:
   provider: anthropic
-  model: claude-sonnet-5-5        # décision D2 : rédige les réponses
+  # Étape 11 (décision D15) : Haiku 5.5 rédige les réponses. Sur les 71 questions de test, il
+  # tient les garde-fous comme Sonnet, répond toujours en 5 s ou moins (médiane 2,5 s contre
+  # 4,2 s) et coûte 21 fois moins. Pour revenir à Sonnet : model: claude-sonnet-5-5
+  model: claude-haiku-5-5
   model_rapide: claude-haiku-5-5  # reformule les questions de suivi (étape 8)
   # Claude 5.5 refuse le paramètre temperature (erreur 400) : on règle l'effort à la place.
-  # low = réponse rapide, sans réflexion préalable (à comparer à medium à l'étape 11)
+  # low = réponse rapide, sans réflexion préalable (medium n'apporte rien de mesurable, D15)
   effort: low
   max_tokens: 1024
 
