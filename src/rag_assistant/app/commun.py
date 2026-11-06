@@ -39,7 +39,7 @@ STYLES = f"""
 <style>
 @import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap");
 :root{{--h-entete:{HAUTEUR_ENTETE}px;--doux:#B1AA9E;--carte:#2A2925;--bord:#3A3833;--bulle:#36342F;
-  --accent:#E69A57;--accent-texte:#1B1A17}}
+  --accent:#E69A57;--accent-texte:#1B1A17;--avis-oui:#7FB069;--avis-non:#D2693C}}
 .st-key-entete{{position:fixed;top:0;left:var(--gauche-entete,0px);right:0;height:var(--h-entete);
   width:auto!important;z-index:999989;
   box-sizing:border-box;padding:0 20px;background:var(--fond-entete,#181715);
@@ -85,6 +85,31 @@ STYLES = f"""
   width:100%;padding:6px 8px;border-radius:8px;line-height:1.35}}
 [data-testid="stSidebar"] button[kind="tertiary"]:hover{{background:rgba(128,128,128,.14)}}
 [data-testid="stSidebar"] button[kind="tertiary"] p{{font-size:.92rem}}
+/* listes déroulantes : main au survol (texte et flèche), pas de curseur de saisie, flèche
+   tournée vers le haut quand la liste est ouverte, choix actuel en couleur et en gras */
+.stSelectbox [role="group"],.stSelectbox [role="group"] input,
+.stSelectbox [role="group"] button{{cursor:pointer!important}}
+.stSelectbox [role="group"] input{{caret-color:transparent}}
+.stSelectbox [role="group"] button svg{{transition:transform .2s ease}}
+.stSelectbox [role="group"]:has(input[aria-expanded="true"]) button svg{{transform:rotate(180deg)}}
+[data-testid="stSelectboxVirtualDropdown"] [role="option"]{{cursor:pointer}}
+[data-testid="stSelectboxVirtualDropdown"] [role="option"][aria-selected="true"] *{{
+  color:var(--accent)!important;font-weight:600}}
+/* avis 👍/👎 : survol teinté, petit rebond au clic, avis choisi en couleur sur fond teinté
+   (vert : utile, brique : pas utile) */
+[data-testid="stFeedback"] button{{border-radius:8px!important;padding:4px 6px!important;
+  transition:background-color .2s ease,transform .12s ease}}
+[data-testid="stFeedback"] button:hover{{background:rgba(128,128,128,.16)!important}}
+[data-testid="stFeedback"] button:active{{transform:scale(.88)}}
+[data-testid="stFeedbackButtonActive"] [data-testid="stIconMaterial"]{{
+  animation:rebond-avis .4s ease}}
+[data-testid="stFeedbackButtonActive"][aria-label="Thumbs up"]{{
+  background:color-mix(in srgb,var(--avis-oui) 18%,transparent)!important}}
+[data-testid="stFeedbackButtonActive"][aria-label="Thumbs up"] *{{color:var(--avis-oui)!important;opacity:1}}
+[data-testid="stFeedbackButtonActive"][aria-label="Thumbs down"]{{
+  background:color-mix(in srgb,var(--avis-non) 18%,transparent)!important}}
+[data-testid="stFeedbackButtonActive"][aria-label="Thumbs down"] *{{color:var(--avis-non)!important;opacity:1}}
+@keyframes rebond-avis{{0%{{transform:scale(1)}}45%{{transform:scale(1.35)}}100%{{transform:scale(1)}}}}
 /* « Statut » à la même taille que « Questions fréquentes » */
 [data-testid="stSidebar"] [data-testid="stWidgetLabel"] p{{font-size:1rem}}
 @media (max-width:640px){{
@@ -115,7 +140,7 @@ html.theme-en-transition *::after{transition:background-color .6s ease,color .6s
 # reste sombre.)
 MODE_CLAIR = """
 <style>
-:root{--accent-texte:#FFFFFF;--fond-entete:#EDEAE2;--bord-entete:#D8D3C8;--fond:#F7F5F0;--panneau:#EDEAE2;--carte:#FFFFFF;--survol:#E4E0D6;--bord:#D8D3C8;
+:root{--avis-oui:#4F7F3A;--avis-non:#B4532A;--accent-texte:#FFFFFF;--fond-entete:#EDEAE2;--bord-entete:#D8D3C8;--fond:#F7F5F0;--panneau:#EDEAE2;--carte:#FFFFFF;--survol:#E4E0D6;--bord:#D8D3C8;
   --texte:#211F1B;--doux:#5B554B;--accent:#A9541B;--bulle:#E6E1D6;--alerte-fond:#FFF2D4;
   --alerte:#5E3F00;--info-fond:#E4ECF7;--info:#1D3B66}
 .stApp,[data-testid="stAppViewContainer"],[data-testid="stBottom"],
@@ -141,6 +166,16 @@ MODE_CLAIR = """
 [data-baseweb="popover"] ul,[data-baseweb="popover"] li{background:var(--carte)!important;
   color:var(--texte)!important}
 [data-baseweb="popover"] li:hover{background:var(--survol)!important}
+[data-testid="stSelectboxVirtualDropdown"]{background:var(--carte)!important;
+  border:1px solid var(--bord);box-shadow:0 6px 18px rgba(33,31,27,.12)!important}
+[data-testid="stSelectboxVirtualDropdown"] [role="option"],
+[data-testid="stSelectboxVirtualDropdown"] [role="option"] *{color:var(--texte)!important}
+[data-testid="stSelectboxVirtualDropdown"] [role="option"],
+[data-testid="stSelectboxVirtualDropdown"] [role="option"] *{background:transparent!important}
+[data-testid="stSelectboxVirtualDropdown"] [role="option"][data-focused="true"]>div,
+[data-testid="stSelectboxVirtualDropdown"] [role="option"]:hover>div{background:var(--survol)!important}
+[data-testid="stSelectboxVirtualDropdown"] [role="option"][aria-selected="true"] *{
+  color:var(--accent)!important;font-weight:600}
 [data-testid="stExpander"] details{background:var(--carte);border-color:var(--bord)!important}
 [data-testid="stExpander"] summary{background:var(--carte)!important}
 [data-testid="stExpander"] summary:hover{background:var(--survol)!important}
