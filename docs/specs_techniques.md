@@ -398,6 +398,21 @@ Corrections V4.2 :
 - filet de sécurité dans le code (`guardrails.sans_vocabulaire_interne`, appliqué aussi pendant l'affichage au fil de l'eau) : « les passages », « les extraits » ou « les documents » suivis d'un verbe comme « disent », « indiquent » ou « ne précisent pas » deviennent « mes documents » ; « deux passages de traitement » ou « le document n'a pas de valeur juridique » ne sont pas touchés ;
 - mesure « parle des sources » : toute mention de « passage », « extrait », « le / les / ce document(s) », sauf « mes documents » et les documents qui sont le sujet (« les documents à fournir »). Recalculée sur les fichiers existants : V3 81 %, V4 44 %, V4.1 46 % ; avec le seul filet du code appliqué à ces mêmes réponses : 17 %, 13 % et 13 %.
 
+Contrôle de la V4.2 (9 novembre 2026, 12 h 31), version retenue pour le second tour de relecture :
+
+| Mesure | V3 (5 nov.) | V4 | V4.1 | V4.2 |
+| --- | --- | --- | --- | --- |
+| Hors corpus détectées (cible ≥ 90 %) | 93 % | 100 % | 100 % | 100 % |
+| Réponses avec au moins une source | 100 % | 100 % | 100 % | 100 % |
+| Avertissement quand il est attendu | 93 % | 86 % | 93 % | 93 % |
+| Réponses en 5 s ou moins (cible) | 100 % | 93 % | 76 % | 96 % |
+| Temps médian | 2,5 s | 3,0 s | 3,7 s | 3,0 s |
+| Longueur médiane | 96 mots | 68,5 mots | 79 mots | 74 mots |
+| Réponses qui parlent de leurs sources | 81 % | 44 % | 46 % | 15 % |
+| Coût pour 1 000 questions | 0,44 $ | 0,45 $ | 0,48 $ | 0,48 $ |
+
+Le retour à 96 % de réponses en 5 s ou moins, avec les mêmes consignes ou presque, confirme que le ralentissement de la V4.1 venait des services en ligne. Les 8 réponses qui parlent encore de leurs sources sont surtout des réponses pour étudiants et chercheurs (« le document précise… »), où la mention reste naturelle, et Q294, dont le sujet est un document ; « selon les passages » (Q148) est ajouté au filet du code. Sur les 10 réponses relues, la longueur totale passe de 1 164 à 804 mots. La question de suite n'est pas toujours proposée (Q010, symptômes, se termine par « Un technicien peut confirmer ce diagnostic. ») : écart mineur, laissé au jugement des relecteurs.
+
 Non retenu pour le prototype, à présenter en perspectives : images explicatives (droits d'auteur des figures du corpus), lecture à voix haute et questions orales, langues locales (§4.2), tests auprès de planteurs non scolarisés. Le cahier des charges vise aussi les techniciens et responsables de coopérative, qui relaient l'information aux planteurs.
 
 ## 4. Sources
