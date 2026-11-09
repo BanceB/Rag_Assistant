@@ -86,8 +86,25 @@ MOTS_SENSIBLES = {
     "certification": r"certifi|ars 1000|ars-1000|fairtrade|rainforest|audit",
 }
 THEMES_SENSIBLES = {"eudr": "conformite", "certification": "certification"}
+# Demande de décision reconnue à la tournure de la question (filet de sécurité, prompt V4.1) :
+# en V4, « Est-ce que je dois couper tous les grands arbres ? » avait été étiquetée « aucun »
+DEMANDE_DE_DECISION = (
+    r"^\W*(est[ -]ce que (je dois|je devrais|il faut que je)|dois[ -]je|devrais[ -]je"
+    r"|faut[ -]il que je|vaut[ -]il mieux que je|peux[ -]tu (me )?confirmer)\b"
+)
 
 CITATION = re.compile(r"\[(\d+(?:\s*[,;]\s*\d+)*)\]")
+
+# Vocabulaire interne que la personne ne connaît pas (relecture du 9 novembre 2026, D16) :
+# le modèle lit des « passages » ; la personne, elle, interroge les documents de l'assistant
+# On ne remplace que quand les passages « disent » quelque chose : « deux passages de
+# traitement » ou « les passages entre les lignes » gardent leur sens agricole.
+VOCABULAIRE_INTERNE = re.compile(
+    r"\b([Cc]e que disent) les (?:passages|extraits|documents)\b"
+    r"|\b([Ll])es (?:passages|extraits|documents)(?: (?:disponibles|fournis))?"
+    r"(?= (?:ne |n')?(?:disent|indiquent|expliquent|donnent|parlent|pr[ée]cisent|mentionnent"
+    r"|proposent|contiennent|abordent|traitent|montrent)\b)"
+)
 
 
 def _simplifier(texte: str) -> str:
@@ -226,6 +243,26 @@ def construire_sources(texte: str, chunks: list[Document]) -> tuple[str, list[So
     return texte.strip(), sources
 
 
+def sans_vocabulaire_interne(texte: str) -> str:
+    """« Les passages disent seulement… » devient « Mes documents disent seulement… ».
+
+    Même chose pour « les extraits » et « les documents » : une seule tournure, la même que
+    dans les messages de refus (« Je n'ai pas trouvé d'information … dans mes documents »).
+
+    Filet de sécurité du prompt V4.2 : la consigne suffit le plus souvent, mais il restait
+    des « passages » dans les demandes de décision et les informations absentes. On ne touche
+    pas à « le document », qui peut être le sujet de la question (« Ce guide a-t-il une valeur
+    juridique ? » : « Non, le document n'a pas… »).
+    """
+
+    def remplacer(m: re.Match) -> str:
+        if m.group(1):
+            return f"{m.group(1)} mes documents"
+        return ("Mes" if m.group(2) == "L" else "mes") + " documents"
+
+    return VOCABULAIRE_INTERNE.sub(remplacer, texte)
+
+
 # ---------------------------------------------------------------- avertissements
 
 
@@ -237,13 +274,16 @@ def avertissements(
     `sujet` : celui que le modèle a indiqué dans sa ligne d'étiquettes. Il comprend le sens de
     la question (« Mon cacao est-il conforme ? » appelle un avertissement, « Que dit la FAQ ? »
     non). Les produits chimiques cités dans la réponse déclenchent toujours l'avertissement
-    « traitement ». Sans étiquette, on se rabat sur les mots de la question et de la réponse
+    « traitement », et une question en « Dois-je… ? » l'avertissement « decision » quand le
+    modèle n'en a choisi aucun. Sans étiquette, on se rabat sur les mots de la question et de la réponse
     et sur le thème des passages cités.
     """
     if sujet is not None:
         sujets = [] if sujet == "aucun" else [sujet]
         if re.search(PRODUITS_CHIMIQUES, _simplifier(reponse)):
             sujets.append("traitement")
+        if not sujets and re.search(DEMANDE_DE_DECISION, _simplifier(question)):
+            sujets.append("decision")
     else:
         texte = _simplifier(f"{question}\n{reponse}")
         sujets = [s for s, motif in MOTS_SENSIBLES.items() if re.search(motif, texte)]

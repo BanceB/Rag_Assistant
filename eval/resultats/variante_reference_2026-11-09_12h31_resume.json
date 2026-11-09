@@ -1,0 +1,55 @@
+{
+ "questions": 71,
+ "par_situation": {
+  "absent_du_corpus": 14,
+  "demande_de_decision": 13,
+  "hors_sujet": 14,
+  "normale": 30
+ },
+ "motifs": {
+  "réponse": 55,
+  "sous_le_seuil": 16
+ },
+ "hors_sujet_refusees": 1.0,
+ "absentes_refusees": 0.07142857142857142,
+ "hors_corpus_refusees": 0.5357142857142857,
+ "absentes_detectees": 1.0,
+ "hors_corpus_detectees": 1.0,
+ "avec_reponse_partielles": 0.047619047619047616,
+ "avec_reponse_refusees": 0.023255813953488372,
+ "refus_a_tort": [
+  "Q170"
+ ],
+ "repondues_avec_source": 1.0,
+ "source_attendue_citee": 0.9523809523809523,
+ "avertissement_present_si_attendu": 0.9285714285714286,
+ "avertissement_en_trop": 0.17857142857142858,
+ "hors_corpus_acceptees": [],
+ "temps_moyen_s": 3.09,
+ "temps_p95_s": 4.78,
+ "temps_max_s": 8.26,
+ "premier_mot_median_s": 1.97,
+ "temps_median_s": 2.97,
+ "tokens": {
+  "entree": 279735,
+  "sortie": 12554
+ },
+ "cout_usd": 0.034,
+ "sous_5s": 0.9636363636363636,
+ "plus_de_5s": 2,
+ "cout_1000_questions_usd": 0.48,
+ "parle_des_sources": 0.14545454545454545,
+ "parle_des_sources_ids": [
+  "Q148",
+  "Q160",
+  "Q164",
+  "Q174",
+  "Q283",
+  "Q294",
+  "Q295",
+  "Q296"
+ ],
+ "propose_la_suite": 0.03636363636363636,
+ "mots_median": 74,
+ "modele": "claude-haiku-5-5"
+}

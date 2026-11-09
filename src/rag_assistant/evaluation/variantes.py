@@ -6,8 +6,8 @@ Chaque variante modifie un seul réglage de config/settings.yaml, le reste étan
 - sonnet         : Claude Sonnet 5.5 rédige les réponses (le modèle d'avant D15) ;
 - effort_medium  : effort medium (plus de réflexion, plus lent) ;
 - k3             : 3 passages donnés au modèle au lieu de 4 (prompt plus court) ;
-- court          : consigne « au plus 70 mots » au lieu de 100 (les réponses de l'étape 7
-                   font 120 mots en médiane, et le temps de génération suit leur longueur).
+- court          : consigne « au plus 60 mots » au lieu de 80 (prompt V4 ; mesurée le
+                   5 novembre 2026 avec 70 au lieu de 100, avant la version 4 du prompt).
 
 Les variantes passent l'une après l'autre sur les mêmes questions (échantillon de l'étape 7 :
 71 questions dont 28 hors corpus) : les écarts viennent du réglage, pas des questions.
@@ -30,6 +30,7 @@ import argparse
 import json
 import logging
 import re
+import statistics
 import sys
 from dataclasses import replace
 from datetime import datetime
@@ -44,6 +45,18 @@ log = logging.getLogger(__name__)
 # dollars par million de tokens (entrée, sortie), https://platform.claude.com/docs/en/about-claude/pricing
 TARIFS = {"claude-sonnet-5-5": (2.0, 10.0), "claude-haiku-5-5": (0.10, 0.50)}
 SEUIL_S = 5.0  # cahier des charges §7.2
+# Style (relecture du 9 novembre 2026, décision D16) : la réponse parle de ses sources au lieu
+# du sujet (« les passages ne disent pas… », « le document propose… »), ou propose la suite
+# (« Voulez-vous savoir… ? »). « Mes documents disent seulement que… » est la tournure
+# permise quand l'information manque (V4.2) et n'est pas comptée ; « le document n'a pas de
+# valeur juridique », qui parle du sujet de la question, l'est (cas rare, compté à tort).
+PARLE_DES_SOURCES = re.compile(
+    r"\b(passages?|extraits?)\b|\b(le|les|ce|ces|un autre|selon le) documents?\b"
+    r"(?! (?:d'|à |de |du |des |n[ée]cessaires|demand|officiels))",  # « les documents à fournir »
+    re.IGNORECASE,
+)
+PROPOSE_LA_SUITE = re.compile(r"\bvoulez-vous\b", re.IGNORECASE)
+CITATIONS = re.compile(r"\s*\[\d+(?:\s*[,;]\s*\d+)*\]")
 
 DESCRIPTIONS = {
     "reference": "Réglages actuels de settings.yaml",
@@ -51,9 +64,9 @@ DESCRIPTIONS = {
     "sonnet": "Sonnet 5.5 rédige les réponses",
     "effort_medium": "Effort medium",
     "k3": "3 passages au lieu de 4",
-    "court": "Consigne de 70 mots au plus au lieu de 100",
+    "court": "Consigne de 60 mots au plus au lieu de 80 (prompt V4)",
 }
-LONGUEUR_ACTUELLE, LONGUEUR_COURTE = "au plus 100 mots", "au plus 70 mots"
+LONGUEUR_ACTUELLE, LONGUEUR_COURTE = "au plus 80 mots", "au plus 60 mots"  # prompt V4
 
 
 def consignes(nom: str) -> str | None:
@@ -97,8 +110,21 @@ def mesures(enregistrements: list[dict], modele: str) -> dict:
     r["cout_1000_questions_usd"] = (
         round(1000 * r["cout_usd"] / len(enregistrements), 2) if enregistrements else None
     )
+    textes = [e.get("texte", "") for e in repondues]
+    r["parle_des_sources"] = _part(bool(PARLE_DES_SOURCES.search(t)) for t in textes)
+    r["parle_des_sources_ids"] = [
+        e["id"] for e in repondues if PARLE_DES_SOURCES.search(e.get("texte", ""))
+    ]
+    r["propose_la_suite"] = _part(bool(PROPOSE_LA_SUITE.search(t)) for t in textes)
+    longueurs = sorted(len(CITATIONS.sub("", t).split()) for t in textes)
+    r["mots_median"] = statistics.median(longueurs) if longueurs else None
     r["modele"] = modele
     return r
+
+
+def _part(valeurs) -> float | None:
+    valeurs = list(valeurs)
+    return sum(valeurs) / len(valeurs) if valeurs else None
 
 
 def modele_de(enregistrements: list[dict], nom: str) -> str:
@@ -112,6 +138,10 @@ def modele_de(enregistrements: list[dict], nom: str) -> str:
 
 def _pct(v) -> str:
     return "—" if v is None else f"{v:.0%}"
+
+
+def _mots(v) -> str:
+    return "—" if v is None else f"{v:g}".replace(".", ",")
 
 
 def _s(v) -> str:
@@ -130,6 +160,12 @@ LIGNES = [
     ("Temps au 95e centile", lambda r: _s(r["temps_p95_s"])),
     ("Premier mot (médiane)", lambda r: _s(r["premier_mot_median_s"])),
     ("Coût pour 1 000 questions", lambda r: f"{r['cout_1000_questions_usd']} $".replace(".", ",")),
+    ("Longueur médiane (mots)", lambda r: _mots(r.get("mots_median"))),
+    ("Réponses qui parlent des « passages » (cible 0)", lambda r: _pct(r.get("parle_des_sources"))),
+    (
+        "Réponses qui proposent la suite (après une explication)",
+        lambda r: _pct(r.get("propose_la_suite")),
+    ),
 ]
 
 
@@ -163,6 +199,10 @@ def ecrire_comparaison(resumes: dict[str, dict], chemin: Path) -> None:
             f"refus à tort {r['refus_a_tort']}"
             for nom, r in resumes.items()
         ],
+        "",
+        "Réponses qui parlent encore des « passages » :",
+        "",
+        *[f"- {nom} : {r.get('parle_des_sources_ids', '—')}" for nom, r in resumes.items()],
         "",
     ]
     chemin.write_text("\n".join(texte), encoding="utf-8")

@@ -39,6 +39,8 @@ norme, le document) au lieu de « ça », « il », « elle », « le », « les
 a décrit, le lieu, la taille de la parcelle, l'étape de travail ;
 - ne commence pas par « Et » ; garde les mots de la personne ;
 - n'ajoute aucune information absente de la conversation, et ne réponds pas à la question ;
+- si la personne répond « oui » (ou « d'accord », « vas-y ») à une question que l'assistant \
+venait de lui proposer, réécris la question proposée ;
 - si la question se comprend déjà seule, recopie-la telle quelle.
 
 Exemples :
@@ -53,6 +55,12 @@ Réécriture : Avec quoi traiter des cabosses qui deviennent noires et pourrisse
 Personne : Qu'est-ce que la diligence raisonnée ?
 Nouvelle question : Et pour une coopérative de 300 membres ?
 Réécriture : Qu'est-ce que la diligence raisonnée pour une coopérative de 300 membres ?
+
+Personne : Mes cabosses ont une tache brune qui s'agrandit.
+Assistant : C'est sans doute la pourriture brune des cabosses. … Voulez-vous savoir comment \
+lutter contre cette maladie ?
+Nouvelle question : Oui
+Réécriture : Comment lutter contre la pourriture brune des cabosses ?
 
 Écris uniquement la réécriture, sur une seule ligne."""
 
@@ -69,7 +77,10 @@ def formater_historique(historique: list[dict]) -> str:
         contenu = nettoyer(m.get("content", ""))
         if m.get("role") == "assistant":
             if len(contenu) > LONGUEUR_REPONSE_MAX:
-                contenu = contenu[:LONGUEUR_REPONSE_MAX].rsplit(" ", 1)[0] + "…"
+                # début et fin : la fin porte la question de suite proposée (« Voulez-vous… ? »)
+                debut = contenu[: LONGUEUR_REPONSE_MAX - 200].rsplit(" ", 1)[0]
+                fin = contenu[-180:].split(" ", 1)[-1]
+                contenu = f"{debut} … {fin}"
             lignes.append(f"Assistant : {contenu}")
         else:
             lignes.append(f"Personne : {contenu}")

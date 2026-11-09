@@ -16,7 +16,7 @@ def test_chaque_variante_ne_change_qu_un_reglage():
     assert v.appliquer(s, "sonnet").llm.model == "claude-sonnet-5-5"
     assert v.appliquer(s, "effort_medium").llm.effort == "medium"
     assert v.appliquer(s, "k3").retrieval.k == 3 and v.appliquer(s, "k3").llm == s.llm
-    assert v.appliquer(s, "court") is s and "au plus 70 mots" in v.consignes("court")
+    assert v.appliquer(s, "court") is s and "au plus 60 mots" in v.consignes("court")
     assert v.consignes("reference") is None
     with pytest.raises(ValueError):
         v.appliquer(s, "inconnue")
@@ -70,3 +70,23 @@ def test_modele_retrouve_pour_le_cout():
     assert v.modele_de([{"modele": "claude-haiku-5-5"}], "reference") == "claude-haiku-5-5"
     assert v.modele_de([{}], "reference") == "claude-sonnet-5-5"  # fichiers d'avant D15
     assert v.modele_de([{}], "haiku") == "claude-haiku-5-5"
+
+
+def test_mesures_de_style():
+    e = [enregistrement(i) for i in range(1, 5)]
+    e[0]["texte"] = "Les passages ne disent pas qu'il faut tout couper [1]."
+    e[1]["texte"] = "Le document propose trois étapes [1]."
+    e[2]["texte"] = (
+        "La cabosse noircit [1]. Voulez-vous savoir comment lutter contre cette maladie ?"
+    )
+    e[3]["texte"] = "Préparez les documents à fournir à la coopérative [1][2]."
+    r = v.mesures(e, "claude-haiku-5-5")
+    assert r["parle_des_sources_ids"] == ["Q001", "Q002"]
+    assert r["parle_des_sources"] == 0.5 and r["propose_la_suite"] == 0.25
+    assert r["mots_median"] == 8.5
+    assert "| Réponses qui proposent la suite (après une explication) | 25% |" in v.tableau(
+        {"reference": r}
+    )
+    e[3]["texte"] = "Je n'ai pas d'information sur le prix. Mes documents disent seulement que [1]."
+    e[2]["texte"] = "Les documents ne précisent pas la dose [1]."
+    assert v.mesures(e, "claude-haiku-5-5")["parle_des_sources_ids"] == ["Q001", "Q002", "Q003"]

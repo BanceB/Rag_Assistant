@@ -105,6 +105,26 @@ def test_avertissement_choisi_par_le_modele_et_filet_pour_les_produits_chimiques
     ]
 
 
+@pytest.mark.parametrize(
+    "question, attendu",
+    [
+        ("Est-ce que je dois couper tous les grands arbres de ma parcelle ?", True),
+        ("Dois-je arracher toute ma plantation ?", True),
+        ("Peux-tu me confirmer que cette parcelle n'est pas en forêt classée ?", True),
+        ("Qu'est-ce que je dois faire contre les mirides ?", False),
+        ("Faut-il marquer les arbres sains ?", False),
+    ],
+)
+def test_filet_pour_les_demandes_de_decision(question, attendu):
+    """Prompt V4.1 : le modèle avait étiqueté « aucun » une question en « Est-ce que je dois »."""
+    decision = [g.AVERTISSEMENTS["decision"]]
+    assert (g.avertissements(question, "Les critères [1].", [], "aucun") == decision) is attendu
+    # un autre avertissement choisi par le modèle suffit : pas de doublon
+    assert g.avertissements(question, "Il faut [1].", [], "conformite") == [
+        g.AVERTISSEMENTS["conformite"]
+    ]
+
+
 def test_prompt_numerote_les_passages_sans_l_en_tete_du_chunk():
     message = prompts.message_utilisateur("Quels symptômes ?", CHUNKS[:2], profil="agriculteur")
     assert "[1] Titre MAL-001 (CNRA, 2021), page 1, section « Symptômes »" in message
@@ -188,7 +208,7 @@ def test_etiquettes_lues_et_retirees(base):
     a, _ = assistant(
         base,
         "nervures",
-        "Les documents ne précisent pas le prix [1].\nETIQUETTES : couverture=partielle ; "
+        "Je n'ai pas d'information sur le prix [1].\nETIQUETTES : couverture=partielle ; "
         "avertissement=traitement",
     )
     r = a.repondre("bandes rouges sur les nervures")
@@ -246,9 +266,9 @@ def test_generateur_claude_n_envoie_pas_de_temperature_et_lit_le_flux():
 
 
 def test_partielle_seulement_si_la_reponse_le_dit_d_emblee():
-    assert g.est_partielle("Les documents ne précisent pas le prix. Mais [1].", "partielle")
-    assert not g.est_partielle("La maladie est [1]. Les documents ne précisent pas…", "partielle")
-    assert not g.est_partielle("Les documents ne précisent pas le prix [1].", "complete")
+    assert g.est_partielle("Je n'ai pas d'information sur le prix. Mais [1].", "partielle")
+    assert not g.est_partielle("La maladie est [1]. Je n'ai pas d'information sur…", "partielle")
+    assert not g.est_partielle("Je n'ai pas d'information sur le prix [1].", "complete")
 
 
 # ---------------------------------------------------------------- évaluation des réponses
@@ -286,3 +306,24 @@ def test_echantillon_et_analyse():
     assert r["source_attendue_citee"] == 0.5
     assert r["avertissement_present_si_attendu"] == 1.0 and r["avertissement_en_trop"] == 0.0
     assert r["cout_usd"] == round((5000 * 2 + 500 * 10) / 1e6, 3)
+
+
+@pytest.mark.parametrize(
+    "avant, apres",
+    [
+        ("Les passages expliquent seulement ce que demande l'EUDR [1].",
+         "Mes documents expliquent seulement ce que demande l'EUDR [1]."),
+        ("Ce que disent les passages : le règlement oblige [1].",
+         "Ce que disent mes documents : le règlement oblige [1]."),
+        ("Oui, mais les extraits disponibles ne disent pas lesquelles.",
+         "Oui, mais mes documents ne disent pas lesquelles."),
+        ("Les documents ne précisent pas la date. Ce que disent les documents : avant mars [1].",
+         "Mes documents ne précisent pas la date. Ce que disent mes documents : avant mars [1]."),
+        ("Non, le document n'a pas de valeur juridique [1].",
+         "Non, le document n'a pas de valeur juridique [1]."),
+        ("Faites deux passages de traitement ; les passages entre les lignes restent libres.",
+         "Faites deux passages de traitement ; les passages entre les lignes restent libres."),
+    ],
+)  # fmt: skip
+def test_sans_vocabulaire_interne(avant, apres):
+    assert g.sans_vocabulaire_interne(avant) == apres

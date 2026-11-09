@@ -363,6 +363,43 @@ Lecture :
 
 Décision : **Claude Haiku 5.5 rédige les réponses** (`llm.model`), effort `low`, 4 passages, consigne de 100 mots inchangée. Sonnet 5.5 reste l'alternative documentée, à reprendre si la relecture humaine trouve Haiku moins juste ou moins clair. Changer de modèle change l'empreinte du cache (D14) : les réponses gardées sont recalculées, et le préchauffage coûte désormais moins de 0,02 $.
 
+### D16. Relecture humaine des réponses et consignes V4 à V4.2 — **décidé (à revérifier au second tour)**
+
+Relecture du 2 au 9 novembre 2026 : 7 formulaires (étudiants et chercheurs, personnes hors de la filière) sur 10 réponses du 2 novembre (Sonnet 5.5, consignes V3), notées « compris » et « utile » sur 5, avec la longueur ressentie et des remarques libres. Code : `evaluation/relecture.py` (second tour, avant / après).
+
+| Mesure | Résultat |
+| --- | --- |
+| Réponse comprise (moyenne) | 3,6 / 5 ; 62 % de notes à 4 ou 5 |
+| Réponse utile (moyenne) | 3,9 / 5 ; 63 % de notes à 4 ou 5 (objectif de satisfaction du §11 : 80 %) |
+| Longueur | 45 « bien », 12 « trop long », 2 « trop court » (11 sans avis) |
+| Les moins comprises | Q005 plantes réservoirs du swollen shoot (2,6), Q130 réexamen de l'EUDR (2,8) |
+| Les mieux comprises | Q234 (4,5), Q113 et Q118 (4,3) |
+
+Limites : les relecteurs ne sont pas le public visé (aucun planteur), et ils ont lu une page fixe, sans le choix du profil de l'application.
+
+Remarques retenues et changements des consignes (V4, `rag/prompts.py`) :
+- **Trop d'informations à la fois** (on demande ce qu'est une tache, la réponse enchaîne sur la lutte) : répondre seulement à ce qui est demandé, puis proposer la suite par une courte question (« Voulez-vous savoir comment lutter contre cette maladie ? ») ; la reformulation des questions de suivi comprend désormais un « oui » à cette proposition (`rag/memory.py`). Les longues listes sont ramenées à 3 à 5 éléments.
+- **Mots savants** (Phytophthora, translucide, loranthus, duvet blanchâtre) : mots du terrain, pas de nom scientifique pour les profils non spécialistes.
+- **« Tel document dit… », « les passages ne précisent pas »** : vocabulaire interne retiré ; les numéros et la liste des sources suffisent. La réponse partielle commence par « Je n'ai pas d'information sur … ».
+- **Renvoi systématique vers l'ANADER ou le CNRA** : gardé pour les symptômes (une phrase courte) ; dans les autres cas, ce sont les avertissements affichés par l'application qui orientent (D10).
+- **Longueur** : 80 mots au plus (100 en V3).
+
+Contrôle de la V4 (9 novembre 2026, Haiku 5.5, mêmes 71 questions que D15) : les garde-fous tiennent (hors corpus détectées 100 %, réponses sourcées 100 %, document attendu cité 95 %, 93 % des réponses en 5 s ou moins, 0,45 $ pour 1 000 questions). Sur les 10 réponses relues, la longueur passe de 1 164 à 624 mots ; sur les 54 réponses, la longueur médiane passe de 96 à 68,5 mots et le renvoi vers un technicien de 25 à 4 réponses. Restaient : 44 % de réponses qui parlent encore des « passages » ou des « documents » (81 % en V3, mesure définie plus bas), 1 seule réponse qui propose la suite, quelques mots savants (translucide, se momifier, Loranthacées) et une demande de décision (« Est-ce que je dois couper tous les grands arbres ? ») étiquetée sans avertissement.
+
+Corrections V4.1 :
+- consignes : interdiction des mots « passage », « extrait » et « document » pour parler des sources, avec un exemple à ne pas suivre ; question de suite obligatoire après une explication ; exemples de mots savants et de leur équivalent du terrain ; ce qui manque est dit par « Je n'ai pas d'information sur … » ;
+- filet de sécurité dans le code (`rag/guardrails.py`) : une question en « Dois-je… ? », « Est-ce que je dois… ? » ou « Peux-tu me confirmer… ? » reçoit l'avertissement « décision » quand le modèle n'en a choisi aucun ;
+- trois mesures ajoutées au tableau de `evaluation/variantes.py` pour suivre le style sans relire chaque réponse : longueur médiane, part des réponses qui parlent des « passages » (cible 0), part de celles qui proposent la suite.
+
+Contrôle de la V4.1 (9 novembre 2026, 11 h 31) : avertissement présent quand il est attendu 93 % (86 % en V4 ; Q165 corrigée), question de suite dans les 3 réponses qui expliquent un problème (Q010, Q026, Q042), mots savants absents des réponses relues ; mais toujours 46 % de réponses qui parlent de leurs sources, presque toutes des demandes de décision (« Les passages expliquent seulement… ») et des informations absentes (« Les documents disent seulement… »). Le temps de réponse s'est dégradé (76 % en 5 s ou moins, médiane 3,7 s) sans lien clair avec les consignes : la recherche Voyage passe de 1,0 à 1,4 s et le premier mot des 20 premières questions de 2,1 à 3,8 s, alors que la rédaction après le premier mot ne prend que 0,9 s dans les deux mesures ; une nouvelle mesure le confirmera.
+
+Corrections V4.2 :
+- consignes : tournures imposées pour les deux cas fautifs, « C'est à vous de décider. » suivi des critères, et « Je n'ai pas d'information sur … » suivi de « Mes documents disent seulement que … », la même formule que les messages de refus ;
+- filet de sécurité dans le code (`guardrails.sans_vocabulaire_interne`, appliqué aussi pendant l'affichage au fil de l'eau) : « les passages », « les extraits » ou « les documents » suivis d'un verbe comme « disent », « indiquent » ou « ne précisent pas » deviennent « mes documents » ; « deux passages de traitement » ou « le document n'a pas de valeur juridique » ne sont pas touchés ;
+- mesure « parle des sources » : toute mention de « passage », « extrait », « le / les / ce document(s) », sauf « mes documents » et les documents qui sont le sujet (« les documents à fournir »). Recalculée sur les fichiers existants : V3 81 %, V4 44 %, V4.1 46 % ; avec le seul filet du code appliqué à ces mêmes réponses : 17 %, 13 % et 13 %.
+
+Non retenu pour le prototype, à présenter en perspectives : images explicatives (droits d'auteur des figures du corpus), lecture à voix haute et questions orales, langues locales (§4.2), tests auprès de planteurs non scolarisés. Le cahier des charges vise aussi les techniciens et responsables de coopérative, qui relaient l'information aux planteurs.
+
 ## 4. Sources
 
 - Tarifs Claude : <https://platform.claude.com/docs/en/about-claude/pricing>

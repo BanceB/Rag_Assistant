@@ -18,6 +18,7 @@ from pathlib import Path
 import yaml
 
 from rag_assistant.config import PROJECT_ROOT
+from rag_assistant.rag.guardrails import sans_vocabulaire_interne
 from rag_assistant.rag.prompts import AUCUNE_REPONSE, ETIQUETTES, HORS_SUJET
 
 SUGGESTIONS = PROJECT_ROOT / "config" / "suggestions.yaml"
@@ -47,7 +48,7 @@ def texte_provisoire(brut: str) -> str:
     fin = lignes[-1].strip().strip("*_").upper()
     if fin and fin.isalpha() and ETIQUETTES.startswith(fin) and len(lignes) > 1:
         brut = "\n".join(lignes[:-1])  # début possible de la ligne ETIQUETTES
-    texte = CITATION.sub("", brut)
+    texte = CITATION.sub("", sans_vocabulaire_interne(brut))
     texte = re.sub(r"\[\d*(?:\s*,\s*\d*)*$", "", texte)  # citation coupée en deux morceaux
     return echapper(texte.rstrip(" *_#\n"))
 

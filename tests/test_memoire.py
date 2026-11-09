@@ -58,9 +58,15 @@ def test_reformulation_nettoyee_et_garde_fou():
 
 def test_historique_sans_citations_ni_reponse_trop_longue():
     texte = formater_historique(
-        [{"role": "assistant", "content": "Le virus [1][2]. " + "a " * 400}]
+        [
+            {
+                "role": "assistant",
+                "content": "Le virus [1][2]. " + "a " * 400 + "Voulez-vous la suite ?",
+            }
+        ]
     )
-    assert "[1]" not in texte and texte.endswith("…") and len(texte) < 650
+    assert "[1]" not in texte and " … " in texte and len(texte) < 650
+    assert texte.endswith("Voulez-vous la suite ?")  # la question de suite proposée est gardée
 
 
 def test_messages_d_historique_alternes_et_commencent_par_la_personne():

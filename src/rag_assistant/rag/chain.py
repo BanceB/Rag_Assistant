@@ -230,6 +230,7 @@ class Assistant:
         if convenue == "aucune_reponse":
             return refus(guardrails.REFUS_ABSENT, "aucune_reponse", usage)
 
+        brut = guardrails.sans_vocabulaire_interne(brut)
         texte, sources = guardrails.construire_sources(brut, chunks)
         if not sources:
             log.warning("Réponse sans citation valide, remplacée par le refus : %r", brut[:200])
