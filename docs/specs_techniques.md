@@ -415,7 +415,29 @@ Le retour à 96 % de réponses en 5 s ou moins, avec les mêmes consignes ou pre
 
 Non retenu pour le prototype, à présenter en perspectives : images explicatives (droits d'auteur des figures du corpus), lecture à voix haute et questions orales, langues locales (§4.2), tests auprès de planteurs non scolarisés. Le cahier des charges vise aussi les techniciens et responsables de coopérative, qui relaient l'information aux planteurs.
 
-## 4. Sources
+## 4. Bilan des indicateurs du cahier des charges (§11)
+
+Point au 9 novembre 2026, avec les réglages retenus (Haiku 5.5, consignes V4.2, D15 et D16). Mesures automatiques sur l'échantillon de l'étape 7 : 71 questions du jeu `eval/questions.jsonl` (30 normales, 13 demandes de décision, 14 absentes du corpus, 14 hors sujet), fichier `eval/resultats/variante_reference_2026-11-09_12h31.jsonl`.
+
+| Indicateur (§11) | Cible | Résultat | Statut |
+| --- | --- | --- | --- |
+| Taille du corpus documentaire structuré | ≥ 100 documents ou fiches curés | 46 documents validés (55 examinés, 8 exclus, 1 à vérifier), 1 399 pages, 2 588 passages indexés | **Non atteint** |
+| Réponses correctement sourcées | ≥ 90 % | 100 % des réponses citent au moins une source (le code refuse une réponse sans citation valide) ; 95 % citent un des documents attendus | Atteint |
+| Pertinence perçue (panel) | ≥ 80 % | 1er tour, réponses V3 : 63 % de notes « utile » à 4 ou 5 sur 5 (moyenne 3,9) ; 2e tour sur les réponses V4.2 en attente | **Non atteint au 1er tour**, à remesurer |
+| Temps de réponse moyen | ≤ 5 s | 3,1 s en moyenne (médiane 3,0 s), 96 % des réponses en 5 s ou moins, maximum 8,3 s ; réponse immédiate pour les questions déjà en cache | Atteint |
+| Satisfaction des testeurs | ≥ 80 % | Pas encore mesurée : le formulaire du 1er tour ne posait pas la question | **À mesurer** |
+| Testeurs | ≥ 15 | 7 relecteurs (étudiants et chercheurs, aucun planteur) | **Non atteint** |
+| Questions hors corpus identifiées | ≥ 90 % | 100 % des 28 questions (14 hors sujet, 14 absentes du corpus) ; 1 question à réponse refusée à tort sur 43 (Q170) | Atteint |
+
+Exigences liées :
+- §7.2 fiabilité et performance : couvertes par les lignes « sourcées » et « temps » ; les avertissements de non-substitution (§13) sont présents dans 93 % des cas où ils sont attendus.
+- Robustesse : la détection des questions hors corpus est restée à 100 % sur les quatre versions des consignes (V4 à V4.2) ; la mesure de temps dépend de la connexion (76 % en 5 s ou moins lors d'un ralentissement des services en ligne, voir D16).
+
+Restent à faire pour atteindre les cibles :
+1. **Tests utilisateurs** (pertinence, satisfaction, 15 testeurs) : faire utiliser l'application elle-même par au moins 15 personnes, dont des planteurs, techniciens ou membres de coopérative (public visé, §5.1 ; équité d'accès, §13), avec le consentement au journal activé, les pouces haut et bas (F9) et un court questionnaire final qui demande la satisfaction générale. Le second tour de relecture (page `eval/resultats/relecture_2026-11-09_12h47.md`) donne la pertinence perçue des réponses V4.2.
+2. **Corpus** : soit compléter jusqu'à 100 documents ou fiches (fiches techniques du CNRA et de l'ANADER, ressources FCI4Africa citées au §7.1), soit faire valider par le directeur de mémoire une cible révisée, le §11 prévoyant que les indicateurs « seront affinés lors du cadrage ». Ajouter des documents demande de relancer l'indexation, puis les évaluations de recherche (étape 6) et de réponse (étape 7).
+
+## 5. Sources
 
 - Tarifs Claude : <https://platform.claude.com/docs/en/about-claude/pricing>
 - Tarifs Voyage AI : <https://docs.voyageai.com/docs/pricing>
