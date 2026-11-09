@@ -319,6 +319,8 @@ def test_echantillon_et_analyse():
          "Oui, mais mes documents ne disent pas lesquelles."),
         ("Les documents ne précisent pas la date. Ce que disent les documents : avant mars [1].",
          "Mes documents ne précisent pas la date. Ce que disent mes documents : avant mars [1]."),
+        ("Le SGI doit contenir, selon les passages : une description [1].",
+         "Le SGI doit contenir, selon mes documents : une description [1]."),
         ("Non, le document n'a pas de valeur juridique [1].",
          "Non, le document n'a pas de valeur juridique [1]."),
         ("Faites deux passages de traitement ; les passages entre les lignes restent libres.",

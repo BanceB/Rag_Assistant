@@ -14,6 +14,7 @@ Principes :
 
 from __future__ import annotations
 
+import functools
 import hashlib
 import logging
 import re
@@ -31,6 +32,11 @@ from rag_assistant.config import Settings, get_settings
 log = logging.getLogger(__name__)
 T = TypeVar("T")
 
+# Délai d'attente d'une réponse de Voyage AI pour une question (le SDK attend 600 s par
+# défaut) : sans connexion, l'erreur arrive en moins d'une minute au lieu de 10 minutes,
+# et l'interface peut répondre depuis le cache de secours (D14)
+DELAI_RESEAU_S = 15
+ESSAIS_RESEAU = 2
 TAILLE_LOT = 64  # chunks par requête : environ 30 000 tokens, très en dessous des limites
 ESSAIS_MAX = 6  # attentes successives : 2, 4, 8, 16, 32 s
 ATTENTE_INITIALE = 2.0
@@ -40,6 +46,15 @@ def nom_collection(settings: Settings, chunk_size: int, chunk_overlap: int) -> s
     """Nom de collection valide pour Chroma : lettres, chiffres, « . », « _ » et « - »."""
     brut = f"{settings.namespace}_{settings.embeddings.model}_{chunk_size}-{chunk_overlap}"
     return re.sub(r"[^A-Za-z0-9._-]", "-", brut)
+
+
+@functools.lru_cache(maxsize=1)
+def client_voyage():
+    """Client Voyage AI pour les questions (embedding et reranking), avec un délai court."""
+    import voyageai
+
+    # lit VOYAGE_API_KEY dans l'environnement (.env)
+    return voyageai.Client(max_retries=ESSAIS_RESEAU, timeout=DELAI_RESEAU_S)
 
 
 def creer_embeddings(settings: Settings | None = None) -> Embeddings:
@@ -57,17 +72,22 @@ def creer_embeddings(settings: Settings | None = None) -> Embeddings:
         La version d'origine découpe toujours le texte en tokens pour former ses lots, ce qui
         recharge le découpage depuis Hugging Face à chaque question (jusqu'à plusieurs
         secondes, et les avertissements « unauthenticated requests »). Une question est
-        courte : on l'envoie directement. Les documents gardent le découpage en lots.
+        courte : on l'envoie directement, avec le délai court de client_voyage(). Les
+        documents gardent le découpage en lots.
         """
 
         def embed_query(self, text: str) -> list[float]:
-            return self._client.embed(
-                [text],
-                model=self.model,
-                input_type="query",
-                truncation=self.truncation,
-                output_dimension=self.output_dimension,
-            ).embeddings[0]
+            return (
+                client_voyage()
+                .embed(
+                    [text],
+                    model=self.model,
+                    input_type="query",
+                    truncation=self.truncation,
+                    output_dimension=self.output_dimension,
+                )
+                .embeddings[0]
+            )
 
     return EmbeddingsVoyage(model=settings.embeddings.model, batch_size=TAILLE_LOT)
 

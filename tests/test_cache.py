@@ -60,3 +60,38 @@ def test_nouvelle_version_ou_reponse_trop_vieille_ignorees_sauf_en_secours(cache
 def test_vider(cache):
     cache.ecrire("Question", None, "v1", reponse())
     assert cache.vider() == 1 and cache.lire("Question", None, "v1") is None
+
+
+def test_prechauffage_s_arrete_proprement_sans_reseau(tmp_path, monkeypatch, capsys):
+    """Coupure de connexion : 3 échecs de suite, puis arrêt avec un message (pas de trace)."""
+    from dataclasses import replace
+    from types import SimpleNamespace
+
+    from rag_assistant import config
+    from rag_assistant.app import affichage
+    from rag_assistant.rag import chain
+
+    class SansReseau:
+        def repondre(self, *args):
+            raise TimeoutError("api.voyageai.com ne répond pas")
+
+    reglages = config.get_settings()
+    reglages = replace(reglages, chemins=replace(reglages.chemins, base_sqlite=tmp_path / "a.db"))
+    questions = [(f"S{i}", f"Question {i} ?") for i in range(5)]
+    monkeypatch.setattr(config, "get_settings", lambda: reglages)
+    monkeypatch.setattr(chain, "creer_assistant", lambda s: SansReseau())
+    monkeypatch.setattr(
+        affichage, "charger_suggestions", lambda: [SimpleNamespace(questions=questions)]
+    )
+    assert c.prechauffer() == 0
+    sortie = capsys.readouterr().out
+    assert sortie.count(" échec :") == c.ECHECS_AVANT_ARRET and "S3" not in sortie
+    assert "vérifiez la connexion internet" in sortie
+
+
+def test_delai_court_pour_voyage():
+    from rag_assistant.ingestion.indexer import DELAI_RESEAU_S, client_voyage
+
+    client = client_voyage()
+    assert client._params["request_timeout"] == DELAI_RESEAU_S < 60
+    assert client is client_voyage()  # un seul client pour toute l'application

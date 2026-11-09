@@ -78,9 +78,9 @@ class RerankerVoyage:
 
     def __init__(self, modele: str, client=None):
         if client is None:
-            import voyageai
+            from rag_assistant.ingestion.indexer import client_voyage
 
-            client = voyageai.Client()  # lit VOYAGE_API_KEY dans l'environnement (.env)
+            client = client_voyage()  # délai court, lit VOYAGE_API_KEY (.env)
         self.modele = modele
         self.client = client
 

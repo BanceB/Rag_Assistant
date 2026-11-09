@@ -150,6 +150,9 @@ class CacheReponses:
         return {"reponses": n, "utilisations": utilisations}
 
 
+ECHECS_AVANT_ARRET = 3
+
+
 def prechauffer(profil: str | None = "agriculteur") -> int:
     """Pose les questions proposées à l'assistant et garde les réponses. Renvoie le nombre gardé."""
     from rag_assistant.app.affichage import charger_suggestions
@@ -160,10 +163,23 @@ def prechauffer(profil: str | None = "agriculteur") -> int:
     assistant = creer_assistant(settings)
     version = version_assistant(assistant)
     cache = CacheReponses(settings.chemins.base_sqlite, settings.cache.duree_jours)
-    gardees = 0
+    gardees = echecs_de_suite = 0
     for categorie in charger_suggestions():
         for qid, texte in categorie.questions:
-            reponse = assistant.repondre(texte, None, profil).en_dict()
+            try:
+                reponse = assistant.repondre(texte, None, profil).en_dict()
+            except Exception as exc:  # coupure réseau, service indisponible…
+                echecs_de_suite += 1
+                print(f"{qid} échec : {type(exc).__name__}  {texte[:60]}")
+                if echecs_de_suite >= ECHECS_AVANT_ARRET:
+                    print(
+                        f"\nArrêt après {echecs_de_suite} échecs de suite : vérifiez la connexion "
+                        "internet, puis relancez la commande."
+                    )
+                    print(f"{gardees} réponse(s) gardée(s) avant l'arrêt.")
+                    return gardees
+                continue
+            echecs_de_suite = 0
             ok = cache.ecrire(texte, profil, version, reponse)
             gardees += ok
             etat = "gardée" if ok else f"non gardée ({reponse.get('motif') or 'sans source'})"

@@ -100,7 +100,7 @@ CITATION = re.compile(r"\[(\d+(?:\s*[,;]\s*\d+)*)\]")
 # On ne remplace que quand les passages « disent » quelque chose : « deux passages de
 # traitement » ou « les passages entre les lignes » gardent leur sens agricole.
 VOCABULAIRE_INTERNE = re.compile(
-    r"\b([Cc]e que disent) les (?:passages|extraits|documents)\b"
+    r"\b([Cc]e que disent|[Ss]elon) les (?:passages|extraits|documents)\b"
     r"|\b([Ll])es (?:passages|extraits|documents)(?: (?:disponibles|fournis))?"
     r"(?= (?:ne |n')?(?:disent|indiquent|expliquent|donnent|parlent|pr[ée]cisent|mentionnent"
     r"|proposent|contiennent|abordent|traitent|montrent)\b)"
