@@ -123,6 +123,10 @@ STYLES = f"""
 }}
 @media (max-width:640px){{
   :root{{--h-entete:60px}}
+  /* téléphone : largeur fixe du panneau latéral (Statut, Questions fréquentes), quelle que soit
+     la largeur calculée ou mémorisée par Streamlit ; le panneau recouvre la page, on le ferme avec « */
+  section[data-testid="stSidebar"][data-collapsed="false"]{{width:min(85vw,360px)!important;min-width:min(85vw,360px)!important;
+    max-width:min(85vw,360px)!important}}
   .st-key-entete{{padding:0 12px}}
   .entete{{gap:8px}}
   .entete img{{width:28px;height:28px}}
