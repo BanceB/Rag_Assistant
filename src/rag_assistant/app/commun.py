@@ -115,6 +115,12 @@ STYLES = f"""
 @keyframes rebond-avis{{0%{{transform:scale(1)}}45%{{transform:scale(1.35)}}100%{{transform:scale(1)}}}}
 /* « Statut » à la même taille que « Questions fréquentes » */
 [data-testid="stSidebar"] [data-testid="stWidgetLabel"] p{{font-size:1rem}}
+/* iPhone et iPad : Safari zoome sur tout champ de saisie écrit en moins de 16 px dès qu'on le touche
+   (liste « Statut », zone de question) et la page reste agrandie. 16 px empêche ce zoom ;
+   la règle ne vise que Safari iOS (-webkit-touch-callout), l'affichage sur ordinateur ne change pas. */
+@supports (-webkit-touch-callout:none){{
+  .stApp input,.stApp textarea,[data-baseweb="select"] input{{font-size:16px!important}}
+}}
 @media (max-width:640px){{
   :root{{--h-entete:60px}}
   .st-key-entete{{padding:0 12px}}
