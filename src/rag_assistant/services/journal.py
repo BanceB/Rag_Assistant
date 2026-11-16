@@ -7,6 +7,8 @@ Ce qui est enregistré pour chaque question (table `echanges`) :
   après masquage des courriels et des numéros de téléphone.
 Et pour chaque avis 👍/👎 (table `avis`) : la valeur, reliée à l'échange. Les suggestions
 libres des visiteurs (table `suggestions`) : un type et un texte, anonymisé de la même façon.
+Les questionnaires des testeurs (table `questionnaires`, annexe 3 du mémoire) : les réponses,
+sans session ni nom, avec les textes libres anonymisés de la même façon.
 
 Protection des données (RGPD, §7.2 et §13 du cahier des charges) :
 - minimisation : ni nom, ni adresse IP, ni navigateur ; la session est un identifiant tiré
@@ -31,6 +33,8 @@ import time
 from collections import Counter
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+
+from rag_assistant.services.questionnaire import IDENTIFIANTS, LONGUEUR_TEXTE
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS echanges (
@@ -66,6 +70,12 @@ CREATE TABLE IF NOT EXISTS suggestions (
     texte TEXT NOT NULL                -- anonymisé (numéros et courriels masqués)
 );
 CREATE INDEX IF NOT EXISTS suggestions_horodatage ON suggestions (horodatage);
+CREATE TABLE IF NOT EXISTS questionnaires (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    horodatage TEXT NOT NULL,
+    reponses TEXT NOT NULL             -- JSON {"q0": "Oui", "q1": …} ; ni nom ni session
+);
+CREATE INDEX IF NOT EXISTS questionnaires_horodatage ON questionnaires (horodatage);
 CREATE TABLE IF NOT EXISTS avis (
     echange_id INTEGER PRIMARY KEY REFERENCES echanges (id) ON DELETE CASCADE,
     horodatage TEXT NOT NULL,
@@ -220,6 +230,7 @@ class Journal:
         with self._connexion() as c:
             n = c.execute("DELETE FROM echanges WHERE horodatage < ?", (limite,)).rowcount
             n += c.execute("DELETE FROM suggestions WHERE horodatage < ?", (limite,)).rowcount
+            n += c.execute("DELETE FROM questionnaires WHERE horodatage < ?", (limite,)).rowcount
         self._derniere_purge = time.time()
         return n
 
@@ -230,6 +241,7 @@ class Journal:
     def tout_effacer(self) -> int:
         with self._connexion() as c:
             n = c.execute("DELETE FROM echanges").rowcount
+            n += c.execute("DELETE FROM questionnaires").rowcount
             return n + c.execute("DELETE FROM suggestions").rowcount
 
     # -------------------------------------------------------------- suggestions des visiteurs
@@ -259,6 +271,47 @@ class Journal:
         sortie = io.StringIO()
         if lignes:
             ecrivain = csv.DictWriter(sortie, fieldnames=list(lignes[0].keys()))
+            ecrivain.writeheader()
+            ecrivain.writerows(lignes)
+        return sortie.getvalue()
+
+    # -------------------------------------------------------------- questionnaires des testeurs
+
+    def ajouter_questionnaire(self, reponses: dict) -> int:
+        """Questionnaire rempli sur la page /questionnaire : réponses seules, sans session.
+
+        Les réponses libres sont anonymisées et tronquées ; les clés inconnues sont ignorées.
+        """
+        propres = {}
+        for cle in IDENTIFIANTS:
+            valeur = reponses.get(cle)
+            if isinstance(valeur, str):
+                valeur = (anonymiser(valeur.strip()) or "")[:LONGUEUR_TEXTE] or None
+            propres[cle] = valeur
+        self._purger_si_besoin()
+        with self._connexion() as c:
+            return c.execute(
+                "INSERT INTO questionnaires (horodatage, reponses) VALUES (?, ?)",
+                (
+                    maintenant().isoformat(timespec="seconds"),
+                    json.dumps(propres, ensure_ascii=False),
+                ),
+            ).lastrowid
+
+    def questionnaires(self) -> list[dict]:
+        """Les questionnaires reçus, du plus ancien au plus récent : horodatage + réponses."""
+        with self._connexion() as c:
+            lignes = c.execute(
+                "SELECT horodatage, reponses FROM questionnaires ORDER BY id"
+            ).fetchall()
+        return [{"horodatage": r["horodatage"], **json.loads(r["reponses"])} for r in lignes]
+
+    def exporter_questionnaires_csv(self) -> str:
+        """Une ligne par questionnaire, une colonne par question (q0 à q18), pour le tableur."""
+        lignes = self.questionnaires()
+        sortie = io.StringIO()
+        if lignes:
+            ecrivain = csv.DictWriter(sortie, fieldnames=["horodatage", *IDENTIFIANTS])
             ecrivain.writeheader()
             ecrivain.writerows(lignes)
         return sortie.getvalue()

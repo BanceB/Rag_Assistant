@@ -3,8 +3,8 @@
 Elle n'apparaît pas dans le chat : seule l'équipe en connaît l'adresse, et elle demande le
 mot de passe ADMIN_PASSWORD du fichier .env (jamais écrit dans le code ni dans Git).
 Contenu : le tableau de bord du journal (étape 10, F9) avec les indicateurs du cahier des
-charges, les dernières questions, l'export et la suppression des données ; puis le catalogue
-du corpus (F7), en lecture seule.
+charges, les dernières questions, l'export et la suppression des données ; les résultats du
+questionnaire des testeurs ; les suggestions ; puis le catalogue du corpus (F7), en lecture seule.
 """
 
 from __future__ import annotations
@@ -20,6 +20,7 @@ from rag_assistant.app.affichage import mot_de_passe_valide
 from rag_assistant.app.chat import PROFILS
 from rag_assistant.app.commun import cache_partage, en_tete, journal_partage, mode_clair
 from rag_assistant.config import PROJECT_ROOT, get_settings
+from rag_assistant.services import questionnaire
 
 ESSAIS_MAX = 5
 BLOCAGE_S = 300  # 5 minutes après 5 mauvais mots de passe
@@ -246,7 +247,9 @@ def _donnees(journal) -> None:
             "- Le texte des questions n'est gardé qu'avec l'accord de la personne (option "
             "« Partager mes questions »), après masquage des numéros et des courriels.\n"
             "- Aucun nom, aucune adresse IP : la session est un identifiant tiré au hasard.\n"
-            "- Les suggestions des visiteurs suivent les mêmes règles (masquage, 90 jours)."
+            "- Les suggestions des visiteurs suivent les mêmes règles (masquage, 90 jours).\n"
+            "- Les questionnaires des testeurs sont anonymes (ni nom ni session) et suivent "
+            "les mêmes règles."
         )
         st.download_button(
             "Exporter le journal (CSV)",
@@ -308,9 +311,65 @@ def _suggestions_section() -> None:
     )
 
 
+def _questionnaires_section() -> None:
+    journal = journal_partage()
+    if journal is None:
+        return
+    st.markdown("#### Questionnaire des testeurs (annexe 3)")
+    reponses = journal.questionnaires()
+    if not reponses:
+        st.caption("Aucun questionnaire reçu pour l'instant (page /questionnaire).")
+        return
+    ind = questionnaire.indicateurs(reponses)
+    a, b, c, d = st.columns(4)
+    a.metric("Testeurs", ind["testeurs"], border=True,
+             help=_objectif(ind["testeurs"], OBJECTIF_TESTEURS, "≥ 15 testeurs")
+             + " · un testeur = un questionnaire envoyé")  # fmt: skip
+    b.metric("Pertinence perçue", _pct(ind["pertinence"]), border=True,
+             help=_objectif(ind["pertinence"], OBJECTIF_SATISFACTION, "≥ 80 %")
+             + " · part des notes 4 ou 5 à la question 5")  # fmt: skip
+    c.metric("Satisfaction", _pct(ind["satisfaction"]), border=True,
+             help=_objectif(ind["satisfaction"], OBJECTIF_SATISFACTION, "≥ 80 %")
+             + " · part des notes 4 ou 5 à la question 14")  # fmt: skip
+    d.metric("Le conseilleraient", _pct(ind["recommandation"]), border=True,
+             help="Part des « Oui » à la question 15")  # fmt: skip
+    st.caption(
+        "Notes 4 ou 5 : compréhension "
+        + _pct(ind["comprehension"])
+        + " · utilité "
+        + _pct(ind["utilite"])
+        + " · confiance "
+        + _pct(ind["confiance"])
+        + " · IA bien comprise (question 13) : "
+        + _pct(ind["ia_comprise"])
+    )
+    libres = [
+        {
+            "Date (UTC)": r["horodatage"].replace("T", " ")[:16],
+            "Statut": r.get("q1") or "",
+            "Apprécié (16)": r.get("q16") or "",
+            "À améliorer (17)": r.get("q17") or "",
+            "Mal répondu (18)": r.get("q18") or "",
+        }
+        for r in reversed(reponses)
+        if r.get("q16") or r.get("q17") or r.get("q18")
+    ]
+    if libres:
+        st.markdown("**Réponses libres**")
+        _tableau(libres, hauteur=320 if len(libres) > 8 else None)
+    st.download_button(
+        "Exporter les questionnaires (CSV)",
+        journal.exporter_questionnaires_csv(),
+        file_name="questionnaires_assistant_cacao.csv",
+        mime="text/csv",
+        icon=":material/download:",
+    )
+
+
 def _tableau_de_bord() -> None:
     st.markdown("### Administration")
     _journal_section()
+    _questionnaires_section()
     _suggestions_section()
 
     st.markdown("#### Documents du corpus (F7)")

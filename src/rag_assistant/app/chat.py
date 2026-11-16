@@ -227,6 +227,11 @@ def panneau() -> None:
                         on_click=_choisir,
                         args=(texte,),
                     )
+        from rag_assistant.app.navigation import QUESTIONNAIRE  # navigation importe ce module
+
+        st.page_link(
+            QUESTIONNAIRE, label="Donner mon avis (questionnaire)", icon=":material/assignment:"
+        )
 
 
 # ------------------------------------------------------------------ zone 3 : discussion
