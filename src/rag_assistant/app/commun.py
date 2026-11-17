@@ -316,6 +316,17 @@ CALAGE = """
   window.addEventListener("resize", caler);
   caler();
 
+  // Téléphone : le panneau recouvre la page. Après le choix d'une question fréquente (ou
+  // « Nouvelle conversation »), on le referme pour que la réponse en cours soit visible.
+  document.addEventListener("click", (e) => {
+    if (window.innerWidth > 640) return;
+    if (!e.target.closest('[class*="st-key-suggestion_"] button, [data-testid="stSidebar"] [data-testid="stBaseButton-secondary"]')) return;
+    setTimeout(() => {
+      const fermer = document.querySelector('[data-testid="stSidebarCollapseButton"] button');
+      if (fermer) fermer.click();
+    }, 80);
+  });
+
   let minuteur = null;
   document.addEventListener("click", (e) => {
     if (!e.target.closest(".st-key-bascule_theme")) return;
