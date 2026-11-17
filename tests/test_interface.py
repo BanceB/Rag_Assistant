@@ -303,3 +303,50 @@ def test_bouton_suggestion_dans_l_en_tete_du_chat_seulement(base, monkeypatch): 
     monkeypatch.setenv("ADMIN_PASSWORD", "essai-admin")
     admin = AppTest.from_string("from rag_assistant.app import admin\nadmin.page()").run()
     assert all(b.key != "bouton_suggestion" for b in admin.button)
+
+
+def test_admin_remplit_le_cache_statut_par_statut(tmp_path):
+    import time
+    from types import SimpleNamespace
+
+    from rag_assistant.services.cache import CacheReponses, Prechauffage, questions_proposees
+    from rag_assistant.services.journal import Journal
+
+    class Faux:
+        def repondre(self, question, historique, profil):
+            d = {"question": question, "texte": "R [1].", "refus": False,
+                 "sources": [{"doc_id": "MAL-001", "page": 1}], "latences": {"total": 1.0}}  # fmt: skip
+            return SimpleNamespace(en_dict=lambda: d)
+
+    cache, travail = CacheReponses(tmp_path / "app.db"), Prechauffage()
+    n = len(questions_proposees())
+    at = AppTest.from_string(
+        "from rag_assistant.app import admin\nadmin.page()", default_timeout=30
+    )
+    at.session_state["admin"] = True
+    at.session_state["_journal_test"] = Journal(tmp_path / "app.db")
+    at.session_state["_assistant_test"] = Faux()
+    at.session_state["_cache_test"] = cache
+    at.session_state["_prechauffage_test"] = travail
+    at.run()
+    assert not at.exception
+    assert at.multiselect[0].value == list(chat_profils())  # tous les statuts sont vides
+    at.multiselect[0].set_value(["technicien"])
+    [b for b in at.button if b.label == "Remplir le cache"][0].click().run()
+    for _ in range(300):
+        if not travail.etat()["en_cours"]:
+            break
+        time.sleep(0.02)
+    at.run()
+    assert not at.exception
+    assert any("Remplissage terminé" in s.value for s in at.success)
+    tableau = next(d.value for d in at.dataframe if "Réponses prêtes" in d.value.columns)
+    lignes = {r["Statut"]: r["Réponses prêtes"] for r in tableau.to_dict("records")}
+    assert lignes["Technicien ou conseiller agricole"] == f"{n} / {n}"
+    assert lignes["Agriculteur ou agricultrice"] == f"0 / {n}"
+
+
+def chat_profils():
+    from rag_assistant.app.chat import PROFILS
+
+    return PROFILS

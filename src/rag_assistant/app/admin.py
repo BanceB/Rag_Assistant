@@ -3,8 +3,9 @@
 Elle n'apparaît pas dans le chat : seule l'équipe en connaît l'adresse, et elle demande le
 mot de passe ADMIN_PASSWORD du fichier .env (jamais écrit dans le code ni dans Git).
 Contenu : le tableau de bord du journal (étape 10, F9) avec les indicateurs du cahier des
-charges, les dernières questions, l'export et la suppression des données ; les résultats du
-questionnaire des testeurs ; les suggestions ; puis le catalogue du corpus (F7), en lecture seule.
+charges, les dernières questions, l'export et la suppression des données ; le cache des
+réponses fréquentes (F8), rempli statut par statut ; les résultats du questionnaire des
+testeurs ; les suggestions ; puis le catalogue du corpus (F7), en lecture seule.
 """
 
 from __future__ import annotations
@@ -17,9 +18,10 @@ import streamlit as st
 from dotenv import load_dotenv
 
 from rag_assistant.app.affichage import mot_de_passe_valide
-from rag_assistant.app.chat import PROFILS
+from rag_assistant.app.chat import PROFIL_PAR_DEFAUT, PROFILS, SANS_PROFIL
 from rag_assistant.app.commun import cache_partage, en_tete, journal_partage, mode_clair
-from rag_assistant.config import PROJECT_ROOT, get_settings
+from rag_assistant.config import PROJECT_ROOT, get_settings, secrets_manquants
+from rag_assistant.services import cache as cache_reponses
 from rag_assistant.services import questionnaire
 
 ESSAIS_MAX = 5
@@ -260,19 +262,151 @@ def _donnees(journal) -> None:
         )
         if st.button(f"Supprimer maintenant les échanges de plus de {jours} jours"):
             st.success(f"{journal.purger()} échange(s) supprimé(s).")
-        cache = cache_partage()
-        if cache is not None:
-            c = cache.statistiques()
-            st.markdown(
-                f"**Cache des réponses fréquentes (F8)** : {c['reponses']} réponse(s) gardée(s), "
-                f"servie(s) {c['utilisations']} fois. Elles sont recalculées après "
-                f"{get_settings().cache.duree_jours} jours ou quand le corpus change."
-            )
-            if st.button("Vider le cache", icon=":material/mop:"):
-                st.success(f"{cache.vider()} réponse(s) retirée(s) du cache.")
         confirme = st.checkbox("Je veux effacer tout le journal (irréversible)")
         if st.button("Tout effacer", disabled=not confirme, icon=":material/delete_forever:"):
             st.success(f"{journal.tout_effacer()} échange(s) effacé(s).")
+
+
+# ------------------------------------------------------------------ cache (F8)
+
+
+@st.cache_resource(show_spinner=False)
+def _prechauffage_serveur() -> cache_reponses.Prechauffage:
+    """Un seul remplissage pour tout le serveur : il survit à la fermeture de la page."""
+    return cache_reponses.Prechauffage()
+
+
+def _prechauffage() -> cache_reponses.Prechauffage:
+    return st.session_state.get("_prechauffage_test") or _prechauffage_serveur()
+
+
+def _assistant_admin():
+    """L'assistant du chat (déjà chargé en mémoire), ou None s'il n'est pas configuré."""
+    ss = st.session_state
+    if "_assistant_test" in ss:
+        return ss["_assistant_test"]
+    if secrets_manquants(get_settings()):
+        return None
+    from rag_assistant.app.chat import _assistant_partage
+
+    return _assistant_partage()
+
+
+def _profil_cache(cle: str) -> str | None:
+    """Le profil tel que le chat l'enregistre dans le cache (« Non précisé » : aucun)."""
+    return None if cle == SANS_PROFIL else cle
+
+
+def _duree(secondes: float) -> str:
+    minutes = round(secondes / 60)
+    return "moins d'une minute" if minutes < 1 else f"environ {minutes} minute{'s' * (minutes > 1)}"
+
+
+def _cache_section() -> None:
+    st.markdown("#### Cache des réponses fréquentes (F8)")
+    cache = cache_partage()
+    if cache is None:
+        st.caption("Le cache est désactivé (`cache.actif` dans config/settings.yaml) ou illisible.")
+        return
+    assistant = _assistant_admin()
+    if assistant is None:
+        st.warning("L'assistant n'est pas configuré (clés manquantes dans .env) : impossible de "
+                   "remplir le cache.", icon=":material/key_off:")  # fmt: skip
+        return
+    st.caption(
+        "Une question fréquente dont la réponse est dans le cache s'affiche tout de suite, sans "
+        "appeler Voyage ni Claude. Le cache dépend du statut choisi dans le chat : chaque statut "
+        f"se remplit à part. Les réponses sont recalculées après {get_settings().cache.duree_jours} "
+        "jours ou quand le corpus, le modèle ou les consignes changent."
+    )
+    questions = cache_reponses.questions_proposees()
+    textes = [texte for _, texte in questions]
+    version = cache_reponses.version_assistant(assistant)
+    comptes = cache.compter(textes, [_profil_cache(p) for p in PROFILS], version)
+    prets = {p: comptes[_profil_cache(p)] for p in PROFILS}
+    _tableau(
+        [
+            {"Statut": PROFILS[p], "Réponses prêtes": f"{n} / {len(textes)}",
+             "État": "Complet" if n == len(textes) else ("Vide" if n == 0 else "Incomplet")}
+            for p, n in prets.items()
+        ]
+    )  # fmt: skip
+    stats = cache.statistiques()
+    st.caption(f"{stats['reponses']} réponse(s) gardée(s) au total, servies {stats['utilisations']} "
+               "fois. Une question peut rester absente : l'assistant ne garde que les réponses "
+               "complètes et sourcées.")  # fmt: skip
+
+    travail = _prechauffage()
+    if travail.etat()["en_cours"]:
+        _suivi_remplissage()
+        return
+    _resultat_dernier_remplissage(travail.etat())
+    incomplets = [p for p, n in prets.items() if n < len(textes)]
+    with st.container(border=True):
+        choisis = st.multiselect(
+            "Statuts à remplir",
+            list(PROFILS),
+            default=incomplets or [PROFIL_PAR_DEFAUT],
+            format_func=PROFILS.get,
+            key="cache_statuts",
+        )
+        manquantes = st.checkbox(
+            "Seulement les questions qui manquent", value=True, key="cache_manquantes",
+            help="Décochez pour recalculer toutes les réponses des statuts choisis.",
+        )  # fmt: skip
+        appels = sum(len(textes) - prets[p] if manquantes else len(textes) for p in choisis)
+        if choisis and appels == 0:
+            st.caption("Tout est déjà prêt pour ces statuts. Décochez la case ci-dessus pour "
+                       "recalculer toutes leurs réponses.")  # fmt: skip
+        elif choisis:
+            st.caption(f"{appels} question(s) à poser à l'assistant : "
+                       f"{_duree(appels * cache_reponses.SECONDES_PAR_QUESTION)}. Vous pouvez "
+                       "quitter la page pendant le remplissage.")  # fmt: skip
+        if st.button("Remplir le cache", type="primary", icon=":material/bolt:",
+                     disabled=not choisis or appels == 0):  # fmt: skip
+            travail.lancer(assistant, cache, [_profil_cache(p) for p in choisis], questions,
+                           seulement_manquantes=manquantes)  # fmt: skip
+            st.rerun()
+    with st.expander("Vider le cache", icon=":material/mop:"):
+        st.caption("Retire toutes les réponses gardées, pour tous les statuts. Les questions "
+                   "fréquentes repasseront par Voyage et Claude jusqu'au prochain remplissage.")  # fmt: skip
+        if st.button("Vider le cache maintenant"):
+            st.success(f"{cache.vider()} réponse(s) retirée(s) du cache.")
+
+
+@st.fragment(run_every=2)
+def _suivi_remplissage() -> None:
+    """Progression, rafraîchie toutes les 2 s ; la page entière se recharge à la fin."""
+    travail = _prechauffage()
+    etat = travail.etat()
+    if not etat["en_cours"]:
+        st.rerun(scope="app")
+    profil = etat["profil"]
+    nom = PROFILS.get(profil if profil is not None else SANS_PROFIL, profil)
+    fait = etat["faites"] / etat["total"] if etat["total"] else 0
+    st.progress(fait, text=f"Remplissage en cours : {etat['faites']} / {etat['total']} "
+                f"questions · statut « {nom} »")  # fmt: skip
+    st.caption(f"{etat['gardees']} gardée(s) · {etat['deja']} déjà prête(s) · "
+               f"{etat['non_gardees']} non gardée(s) · {etat['echecs']} échec(s)")  # fmt: skip
+    if st.button("Arrêter le remplissage", icon=":material/stop_circle:"):
+        travail.arreter()
+        st.info("Arrêt demandé : la question en cours se termine, puis le remplissage s'arrête.")
+
+
+def _resultat_dernier_remplissage(etat: dict) -> None:
+    if not etat["fin"]:
+        return
+    bilan = (f"{etat['gardees']} réponse(s) ajoutée(s), {etat['deja']} déjà prête(s), "
+             f"{etat['non_gardees']} non gardée(s), {etat['echecs']} échec(s).")  # fmt: skip
+    heure = etat["fin"][11:16]
+    if etat["arrete_par_l_equipe"]:
+        st.info(f"Remplissage arrêté à {heure} (UTC). {bilan}", icon=":material/stop_circle:")
+    elif etat["interrompu"]:
+        st.warning(f"Remplissage interrompu à {heure} (UTC) après {cache_reponses.ECHECS_AVANT_ARRET}"
+                   f" échecs de suite : vérifiez la connexion du serveur et les clés. {bilan}",
+                   icon=":material/wifi_off:")  # fmt: skip
+    else:
+        st.success(f"Remplissage terminé à {heure} (UTC). {bilan}", icon=":material/check_circle:")
 
 
 def _suggestions_section() -> None:
@@ -369,6 +503,7 @@ def _questionnaires_section() -> None:
 def _tableau_de_bord() -> None:
     st.markdown("### Administration")
     _journal_section()
+    _cache_section()
     _questionnaires_section()
     _suggestions_section()
 

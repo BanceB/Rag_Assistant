@@ -95,3 +95,71 @@ def test_delai_court_pour_voyage():
     client = client_voyage()
     assert client._params["request_timeout"] == DELAI_RESEAU_S < 60
     assert client is client_voyage()  # un seul client pour toute l'application
+
+
+# ------------------------------------------------------------------ remplissage depuis /admin
+
+
+class FauxAssistant:
+    """Répond tout de suite ; refuse les questions qui contiennent « CAN »."""
+
+    def __init__(self, attente=0.0):
+        self.appels, self.attente = [], attente
+
+    def repondre(self, question, historique, profil):
+        import time
+        from types import SimpleNamespace
+
+        time.sleep(self.attente)
+        self.appels.append((question, profil))
+        refus = "CAN" in question
+        return SimpleNamespace(en_dict=lambda: reponse(refus=refus) | {"question": question})
+
+
+QUESTIONS = [("Q1", "Question une ?"), ("Q2", "Question deux ?"), ("Q3", "Qui a gagné la CAN ?")]
+
+
+def test_compter_par_profil_et_remplir_seulement_les_manquantes(cache):
+    a = FauxAssistant()
+    version = c.version_assistant(a)
+    cache.ecrire("Question une ?", "technicien", version, reponse())
+    textes = [t for _, t in QUESTIONS]
+    assert cache.compter(textes, ["technicien", None], version) == {"technicien": 1, None: 0}
+
+    etats = []
+    gardees, interrompu = c.remplir(
+        "technicien", a, cache, QUESTIONS, seulement_manquantes=True,
+        sur_question=lambda qid, t, etat, d: etats.append((qid, etat)),
+    )  # fmt: skip
+    assert (gardees, interrompu) == (1, False)
+    assert etats == [("Q1", "deja"), ("Q2", "gardee"), ("Q3", "non_gardee")]
+    assert [q for q, _ in a.appels] == ["Question deux ?", "Qui a gagné la CAN ?"]
+    assert cache.compter(textes, ["technicien"], version) == {"technicien": 2}
+
+
+def test_remplissage_en_arriere_plan_puis_arret(cache):
+    travail = c.Prechauffage()
+    assert travail.lancer(FauxAssistant(), cache, ["cooperative", None], QUESTIONS)
+    for _ in range(200):
+        if not travail.etat()["en_cours"]:
+            break
+        import time
+
+        time.sleep(0.02)
+    etat = travail.etat()
+    assert not etat["en_cours"] and not etat["interrompu"] and etat["fin"]
+    assert (etat["total"], etat["faites"], etat["gardees"], etat["non_gardees"]) == (6, 6, 4, 2)
+
+    # arrêt demandé pendant le remplissage : il s'arrête, sans rester « en cours »
+    lent = FauxAssistant(attente=0.05)
+    assert travail.lancer(lent, cache, ["etudiant_chercheur"], QUESTIONS * 20, False)
+    assert not travail.lancer(lent, cache, ["etudiant_chercheur"], QUESTIONS)  # un seul à la fois
+    travail.arreter()
+    for _ in range(200):
+        if not travail.etat()["en_cours"]:
+            break
+        import time
+
+        time.sleep(0.02)
+    etat = travail.etat()
+    assert etat["arrete_par_l_equipe"] and etat["interrompu"] and etat["faites"] < 60

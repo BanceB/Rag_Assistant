@@ -411,8 +411,8 @@ def cache_partage() -> CacheReponses | None:
     ss = st.session_state
     if "_cache_test" in ss:
         return ss["_cache_test"]
-    if "_assistant_test" in ss or not get_settings().cache.actif:
-        return None
+    if "_assistant_test" in ss or "_journal_test" in ss or not get_settings().cache.actif:
+        return None  # pendant les tests, jamais le cache de data/app.db
     try:
         return _cache_serveur()
     except Exception:
