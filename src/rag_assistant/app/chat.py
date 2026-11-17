@@ -15,6 +15,7 @@ import html
 import logging
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 
 import streamlit as st
 
@@ -96,6 +97,9 @@ def _etat() -> None:
     # identifiant tiré au hasard pour l'onglet : relie les questions d'une même conversation
     # dans le journal, sans rien dire de la personne
     ss.setdefault("session_id", uuid.uuid4().hex)
+    # question dont la réponse se prépare, et questions arrivées pendant ce temps (voir traiter)
+    ss.setdefault("en_cours", None)
+    ss.setdefault("file", [])
 
 
 def _choisir(question: str) -> None:
@@ -301,64 +305,123 @@ def historique_pour_l_assistant(messages: list[dict]) -> list[dict]:
     return sortie
 
 
-def traiter(question: str, assistant: Assistant) -> None:
+# Une réponse prend plusieurs secondes. Streamlit relance la page à chaque clic (pouce, statut,
+# autre question…) et abandonne alors le script en cours : une réponse préparée dans le script
+# serait perdue avec sa question. La réponse se prépare donc dans un fil à part, dont le
+# résultat est gardé dans la session : la page relancée reprend l'attente là où elle en était,
+# sans reposer la question à Claude. Les questions arrivées pendant ce temps attendent leur tour.
+REPONSES_EN_PARALLELE = 8
+
+
+@st.cache_resource(show_spinner=False)
+def _executeur() -> ThreadPoolExecutor:
+    return ThreadPoolExecutor(max_workers=REPONSES_EN_PARALLELE, thread_name_prefix="reponse")
+
+
+def _profil_choisi() -> str | None:
+    profil = st.session_state.get("profil", PROFIL_PAR_DEFAUT)
+    return None if profil == SANS_PROFIL else profil
+
+
+def recevoir(question: str) -> None:
+    """Met la question dans la file (avec le statut choisi au moment de l'envoi)."""
     ss = st.session_state
     question = question.strip()[:MAX_CARACTERES]
     if not question:
         return
     if not ss["limiteur"].autoriser():
-        attente = ss["limiteur"].attente_minutes()
-        st.warning(
-            f"Vous avez posé beaucoup de questions en peu de temps. Vous pourrez reprendre "
-            f"dans {attente} minute{'s' if attente > 1 else ''}.",
-            icon=":material/hourglass_top:",
-        )
+        ss["limite_atteinte"] = ss["limiteur"].attente_minutes()
         return
-    historique = historique_pour_l_assistant(ss["messages"])
-    profil = ss.get("profil", PROFIL_PAR_DEFAUT)
-    profil = None if profil == SANS_PROFIL else profil
+    en_attente = [d["question"] for d in ss["file"]]
+    if ss["en_cours"] is not None:
+        en_attente.append(ss["en_cours"]["question"])
+    if question in en_attente:  # même question touchée deux fois : une seule réponse
+        return
     ss.pop("erreur", None)
-    bulle_personne(question)
-    # cache (F8) : seulement pour une question posée hors conversation (sans historique)
-    cache, version = _cache_et_version(assistant) if not historique else (None, None)
-    with st.chat_message("assistant", avatar=str(LOGO_PNG)):
-        gardee = _lire_cache(cache, question, profil, version)
-        if gardee:  # réponse déjà vérifiée : pas d'appel au modèle
-            _publier(question, gardee, profil, suivi=False)
+    ss["file"].append({"question": question, "profil": _profil_choisi()})
+
+
+def traiter(assistant: Assistant) -> None:
+    """Fait avancer la question en cours, puis celles de la file, sans en perdre aucune."""
+    ss = st.session_state
+    if ss["en_cours"] is None:
+        if not ss["file"]:
             return
+        if not _lancer(ss["file"].pop(0), assistant):
+            return  # réponse du cache, déjà affichée
+    en_cours = ss["en_cours"]
+    bulle_personne(en_cours["question"])
+    with st.chat_message("assistant", avatar=str(LOGO_PNG)):
         zone = st.empty()
         zone.markdown(ATTENTE)
-        recu: list[str] = []
-        dernier = [0.0]
+    for suivante in ss["file"]:  # arrivées pendant la réponse : affichées, en attente
+        bulle_personne(suivante["question"])
+    calcul = en_cours["calcul"]
+    while not calcul.done():
+        zone.markdown((aff.texte_provisoire("".join(en_cours["recu"])) or ATTENTE) + " ▌")
+        time.sleep(0.1)
+    zone.empty()
+    ss["en_cours"] = None
+    _terminer(en_cours, zone)
+    if ss["file"]:
+        st.rerun()  # question suivante
 
-        def au_fil(morceau: str) -> None:
-            recu.append(morceau)
-            maintenant = time.perf_counter()
-            if maintenant - dernier[0] > 0.08:  # pas plus de ~12 rafraîchissements par seconde
-                dernier[0] = maintenant
-                zone.markdown((aff.texte_provisoire("".join(recu)) or ATTENTE) + " ▌")
 
-        try:
-            reponse = assistant.repondre(question, historique, profil, au_fil=au_fil)
-        except Exception as exc:
-            log.exception("Échec de la réponse")
-            zone.empty()
-            secours = _lire_cache(cache, question, profil, version, secours=True)
-            if secours:  # service coupé, mais la question a déjà reçu une réponse
-                _publier(question, secours, profil, suivi=False)
-                return
-            _journaliser_erreur(exc, profil)
-            ss["erreur"] = question
-            _boite_erreur(question)
+def _lancer(demande: dict, assistant: Assistant) -> bool:
+    """Démarre la réponse. False si le cache a répondu tout de suite (rien à attendre)."""
+    ss = st.session_state
+    question, profil = demande["question"], demande["profil"]
+    historique = historique_pour_l_assistant(ss["messages"])
+    # cache (F8) : seulement pour une question posée hors conversation (sans historique)
+    cache, version = _cache_et_version(assistant) if not historique else (None, None)
+    gardee = _lire_cache(cache, question, profil, version)
+    if gardee:  # réponse déjà vérifiée : pas d'appel au modèle
+        message = _enregistrer(question, gardee, profil, suivi=False)
+        bulle_personne(question)
+        with st.chat_message("assistant", avatar=str(LOGO_PNG)):
+            afficher_reponse(message)
+        if ss["file"]:
+            st.rerun()
+        return False
+    recu: list[str] = []
+    ss["en_cours"] = {
+        "question": question, "profil": profil, "suivi": bool(historique),
+        "cache": cache, "version": version, "recu": recu,
+        "calcul": _executeur().submit(
+            assistant.repondre, question, historique, profil, au_fil=recu.append
+        ),
+    }  # fmt: skip
+    return True
+
+
+def _terminer(en_cours: dict, zone) -> None:
+    """La réponse est prête (ou a échoué) : on la garde, on la journalise, on l'affiche."""
+    ss = st.session_state
+    question, profil = en_cours["question"], en_cours["profil"]
+    cache, version = en_cours["cache"], en_cours["version"]
+    exc = en_cours["calcul"].exception()
+    if exc is not None:
+        log.error("Échec de la réponse", exc_info=exc)
+        secours = _lire_cache(cache, question, profil, version, secours=True)
+        if secours:  # service coupé, mais la question a déjà reçu une réponse
+            message = _enregistrer(question, secours, profil, suivi=False)
+            with zone.container():
+                afficher_reponse(message)
             return
-        zone.empty()
-        resultat = reponse.en_dict()
-        if cache is not None:
-            try:
-                cache.ecrire(question, profil, version, resultat)
-            except Exception:
-                log.exception("Réponse non gardée dans le cache")
-        _publier(question, resultat, profil, suivi=bool(historique))
+        _journaliser_erreur(exc, profil)
+        ss["erreur"] = question
+        with zone.container():
+            _boite_erreur(question)
+        return
+    resultat = en_cours["calcul"].result().en_dict()
+    if cache is not None:
+        try:
+            cache.ecrire(question, profil, version, resultat)
+        except Exception:
+            log.exception("Réponse non gardée dans le cache")
+    message = _enregistrer(question, resultat, profil, suivi=en_cours["suivi"])
+    with zone.container():
+        afficher_reponse(message)
 
 
 def _cache_et_version(assistant: Assistant):
@@ -382,15 +445,15 @@ def _lire_cache(cache, question, profil, version, secours: bool = False) -> dict
         return None
 
 
-def _publier(question: str, resultat: dict, profil: str | None, suivi: bool) -> None:
-    """Ajoute l'échange à la conversation, l'enregistre au journal et l'affiche."""
+def _enregistrer(question: str, resultat: dict, profil: str | None, suivi: bool) -> dict:
+    """Ajoute l'échange à la conversation et l'enregistre au journal ; renvoie la réponse."""
     ss = st.session_state
     ss["compteur"] += 1
     message = {"role": "assistant", "id": ss["compteur"], "reponse": resultat}
     message["journal_id"] = _journaliser(resultat, profil, suivi=suivi)
     ss["messages"] += [{"role": "user", "texte": question}, message]
     log.info("Réponse %s : %s", message["id"], resultat.get("latences"))
-    afficher_reponse(message)
+    return message
 
 
 def _journaliser(reponse: dict, profil: str | None, suivi: bool) -> int | None:
@@ -439,16 +502,8 @@ def page() -> None:
         st.toast("Merci ! Votre suggestion a bien été envoyée.", icon=":material/check_circle:")
     st.html(STYLES_CHAT)
     ss = st.session_state
-    zone_accueil = st.empty()
-    if not ss["messages"] and "erreur" not in ss:
-        with zone_accueil.container():
-            accueil()
-    for message in ss["messages"]:
-        if message["role"] == "user":
-            bulle_personne(message["texte"])
-        else:
-            with st.chat_message("assistant", avatar=str(LOGO_PNG)):
-                afficher_reponse(message)
+    # la saisie est lue avant d'afficher la conversation (elle reste en bas de l'écran) :
+    # une question envoyée entre dans la file tout de suite, même si la page est relancée
     saisie = st.chat_input(
         "Posez votre question sur le cacao…",
         max_chars=MAX_CARACTERES,
@@ -456,7 +511,24 @@ def page() -> None:
     )
     question = saisie or ss.pop("question_choisie", None)
     if question and assistant is not None:
-        zone_accueil.empty()
-        traiter(question, assistant)
+        recevoir(question)
+    attente = ss.pop("limite_atteinte", None)
+    if attente:
+        st.warning(
+            f"Vous avez posé beaucoup de questions en peu de temps. Vous pourrez reprendre "
+            f"dans {attente} minute{'s' if attente > 1 else ''}.",
+            icon=":material/hourglass_top:",
+        )
+    occupe = ss["en_cours"] is not None or bool(ss["file"])
+    if not ss["messages"] and "erreur" not in ss and not occupe:
+        accueil()
+    for message in ss["messages"]:
+        if message["role"] == "user":
+            bulle_personne(message["texte"])
+        else:
+            with st.chat_message("assistant", avatar=str(LOGO_PNG)):
+                afficher_reponse(message)
+    if occupe and assistant is not None:
+        traiter(assistant)
     elif "erreur" in ss:
         erreur(ss["erreur"])

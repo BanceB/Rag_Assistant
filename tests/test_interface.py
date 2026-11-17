@@ -350,3 +350,21 @@ def chat_profils():
     from rag_assistant.app.chat import PROFILS
 
     return PROFILS
+
+
+def test_questions_en_file_toutes_traitees_dans_l_ordre_sans_doublon(base):  # noqa: F811
+    """Questions arrivées pendant une réponse : aucune perdue, la même n'est posée qu'une fois."""
+    a, generateur = assistant(base, "nervures", "Swollen shoot [1].")
+    at = AppTest.from_file(MAIN, default_timeout=30)
+    at.session_state["_assistant_test"] = a
+    at.run()
+    at.session_state["file"] = [
+        {"question": "Bandes rouges sur les nervures ?", "profil": "agriculteur"},
+        {"question": "Et sur les feuilles ?", "profil": "technicien"},
+    ]
+    at.chat_input[0].set_value("Et sur les feuilles ?").run()  # déjà dans la file : ignorée
+    assert not at.exception
+    textes = [m["texte"] for m in at.session_state["messages"] if m["role"] == "user"]
+    assert textes == ["Bandes rouges sur les nervures ?", "Et sur les feuilles ?"]
+    assert len(generateur.appels) == 2
+    assert at.session_state["en_cours"] is None and at.session_state["file"] == []
