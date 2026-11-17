@@ -82,6 +82,22 @@ STYLES = f"""
 [data-testid="stHeader"]{{top:var(--h-entete)!important;background:transparent!important;
   pointer-events:none}}
 [data-testid="stHeader"] *{{pointer-events:auto}}
+/* bouton qui ouvre le panneau (Statut, Questions fréquentes) : le » gris de Streamlit passait
+   inaperçu pendant les tests ; il devient un bouton orange « ☰ Menu », bien visible */
+[data-testid="stExpandSidebarButton"]{{background:var(--accent)!important;color:var(--accent-texte)!important;
+  border-radius:999px!important;padding:8px 16px 8px 12px!important;width:auto!important;height:auto!important;
+  display:inline-flex!important;align-items:center;gap:8px;box-shadow:0 2px 10px rgba(0,0,0,.25);
+  font-weight:700;font-size:1rem;line-height:1}}
+[data-testid="stExpandSidebarButton"]>span{{display:none!important}}
+[data-testid="stExpandSidebarButton"]::before{{content:"menu";font-family:"Material Symbols Rounded";
+  font-size:1.4rem;font-weight:400;line-height:1}}
+[data-testid="stExpandSidebarButton"]::after{{content:"Menu"}}
+[data-testid="stExpandSidebarButton"]:hover{{filter:brightness(1.08)}}
+/* la bande de ce bouton prend le fond de la page : la discussion défile dessous au lieu de
+   passer derrière le bouton ; la page commence sous la bande */
+[data-testid="stHeader"]{{background:var(--fond,#1F1E1B)!important}}
+[data-testid="stMainBlockContainer"]{{padding-top:calc(var(--h-entete) + 3.75rem + 1rem)!important}}
+[data-testid="stExpandSidebarButton"]:focus-visible{{outline:3px solid var(--texte,#ECE8E0);outline-offset:2px}}
 [data-testid="stMainBlockContainer"]{{padding-top:calc(var(--h-entete) + 2.5rem)!important}}
 [data-testid="stSidebarHeader"]{{padding-top:.75rem;padding-bottom:0;height:auto}}
 [data-testid="stSidebar"] button[kind="tertiary"]{{justify-content:flex-start;text-align:left;

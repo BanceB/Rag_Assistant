@@ -242,7 +242,7 @@ def accueil() -> None:
     st.html(
         f"""<div class="accueil">{logo_html(64)}
 <h1>Bonjour, quelle est votre question sur le cacao ?</h1>
-<p class="doux">Choisissez une question dans les « Questions fréquentes », ou écrivez la vôtre en bas.
+<p class="doux">Ouvrez le « Menu » pour choisir une question toute prête, ou écrivez la vôtre en bas.
 Chaque réponse indique les documents d'où elle vient.</p>
 <p class="avis-ia">{AVIS_IA}</p></div>"""
     )
