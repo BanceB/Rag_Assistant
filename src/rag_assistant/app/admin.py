@@ -153,7 +153,7 @@ def _tuiles(*tuiles: str, colonnes: int = 4) -> None:
 
 def _journal_section() -> None:
     journal = journal_partage()
-    st.markdown("#### Journal des échanges (F9)")
+    st.markdown("#### Journal des échanges")
     if journal is None:
         st.warning("Le journal est indisponible : la base data/app.db ne peut pas être ouverte.")
         return
@@ -166,7 +166,7 @@ def _journal_section() -> None:
         _donnees(journal)
         return
 
-    st.caption("Indicateurs du cahier des charges (§11)")
+    st.caption("Indicateurs du cahier des charges")
     _tuiles(
         _tuile("Réponses sourcées", _pct(stats["taux_sourcees"]),
                _etat(stats["taux_sourcees"], OBJECTIF_SOURCEES, "≥ 90 %")),
@@ -351,7 +351,7 @@ def _duree(secondes: float) -> str:
 
 
 def _cache_section() -> None:
-    st.markdown("#### Cache des réponses fréquentes (F8)")
+    st.markdown("#### Cache des réponses fréquentes")
     cache = cache_partage()
     if cache is None:
         st.caption("Le cache est désactivé (`cache.actif` dans config/settings.yaml) ou illisible.")
@@ -461,7 +461,7 @@ def _suggestions_section() -> None:
     journal = journal_partage()
     if journal is None:
         return
-    st.markdown("#### Suggestions des visiteurs (F9)")
+    st.markdown("#### Suggestions des visiteurs")
     suggestions = journal.suggestions()
     if not suggestions:
         st.caption("Aucune suggestion pour l'instant (bouton « Suggestion » de l'en-tête du chat).")
@@ -497,7 +497,7 @@ def _questionnaires_section() -> None:
     journal = journal_partage()
     if journal is None:
         return
-    st.markdown("#### Questionnaire des testeurs (annexe 3)")
+    st.markdown("#### Questionnaire des testeurs")
     reponses = journal.questionnaires()
     if not reponses:
         st.caption("Aucun questionnaire reçu pour l'instant (page /questionnaire).")
@@ -554,7 +554,7 @@ def _tableau_de_bord() -> None:
     _questionnaires_section()
     _suggestions_section()
 
-    st.markdown("#### Documents du corpus (F7)")
+    st.markdown("#### Documents du corpus")
     documents = _catalogue()
     themes = {d["theme"] for d in documents if d["theme"]}
     valides = sum(d["statut"] == "valide" for d in documents)
