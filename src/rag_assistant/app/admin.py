@@ -11,6 +11,7 @@ testeurs ; les suggestions ; puis le catalogue du corpus (F7), en lecture seule.
 from __future__ import annotations
 
 import csv
+import html
 import os
 import time
 
@@ -77,6 +78,13 @@ def _catalogue() -> list[dict]:
         return [{c: ligne.get(c, "") for c in COLONNES} for ligne in csv.DictReader(f)]
 
 
+NOMS_THEMES = {
+    "maladies": "maladies",
+    "bonnes_pratiques": "pratiques",
+    "eudr": "EUDR",
+    "certification": "certification",
+    "indicateurs": "indicateurs",
+}
 PERIODES = {"7 jours": 7, "30 jours": 30, "Tout": None}
 MOTIFS = {
     "sous_le_seuil": "Rien de pertinent dans les documents",
@@ -96,10 +104,49 @@ def _sec(valeur: float | None) -> str:
     return "—" if valeur is None else f"{valeur:.1f} s".replace(".", ",")
 
 
-def _objectif(valeur: float | None, cible: float, texte: str) -> str:
+# Tuiles des indicateurs : une grille compacte (4 par ligne sur ordinateur, 2 sur téléphone),
+# avec l'état de l'objectif écrit sous la valeur plutôt que caché dans une infobulle.
+STYLE_TUILES = """
+<style>
+.tuiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:2px 0 16px}
+.tuiles.trois{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:900px){.tuiles,.tuiles.trois{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tuiles .tuile:last-child:nth-child(odd){grid-column:1/-1}}
+.tuile{border:1px solid var(--bord,#3A3833);border-radius:10px;padding:10px 12px 9px;
+  background:var(--carte,#2A2925);min-width:0}
+.tuile .l{font-size:.8rem;line-height:1.25;color:var(--doux,#B1AA9E)}
+.tuile .v{font-size:1.5rem;font-weight:600;line-height:1.2;margin:3px 0 4px;
+  font-variant-numeric:tabular-nums}
+.tuile .n{font-size:.72rem;line-height:1.3;color:var(--doux,#B1AA9E)}
+.tuile .n.ok{color:var(--avis-oui,#7FB069)}
+.tuile .n.ko{color:var(--accent,#E69A57)}
+</style>
+"""
+
+
+def _etat(valeur: float | None, cible: float, texte: str) -> tuple[str, str]:
+    """(texte, classe) de l'état d'un objectif : atteint (ok), pas encore (ko), sans donnée."""
     if valeur is None:
-        return f"Objectif {texte} · pas encore de données"
-    return f"Objectif {texte} · {'atteint' if valeur >= cible else 'pas encore atteint'}"
+        return f"Objectif {texte}", ""
+    if valeur >= cible:
+        return f"✓ Objectif {texte} atteint", "ok"
+    return f"Objectif {texte} : en cours", "ko"
+
+
+def _tuile(libelle: str, valeur, *notes) -> str:
+    """Une tuile ; chaque note est un texte ou un couple (texte, classe)."""
+    lignes = []
+    for note in notes:
+        texte, classe = note if isinstance(note, tuple) else (note, "")
+        if texte:
+            lignes.append(f'<div class="n {classe}">{html.escape(texte)}</div>')
+    return (f'<div class="tuile"><div class="l">{html.escape(libelle)}</div>'
+            f'<div class="v">{html.escape(str(valeur))}</div>{"".join(lignes)}</div>')  # fmt: skip
+
+
+def _tuiles(*tuiles: str, colonnes: int = 4) -> None:
+    classe = "tuiles trois" if colonnes == 3 else "tuiles"
+    st.markdown(f'<div class="{classe}">{"".join(tuiles)}</div>', unsafe_allow_html=True)
 
 
 def _journal_section() -> None:
@@ -118,31 +165,30 @@ def _journal_section() -> None:
         return
 
     st.caption("Indicateurs du cahier des charges (§11)")
-    a, b, c, d = st.columns(4)
-    a.metric("Réponses sourcées", _pct(stats["taux_sourcees"]), border=True,
-             help=_objectif(stats["taux_sourcees"], OBJECTIF_SOURCEES, "≥ 90 %"))  # fmt: skip
-    b.metric("Réponses en 5 s ou moins", _pct(stats["taux_sous_5s"]), border=True,
-             help=_objectif(stats["taux_sous_5s"], OBJECTIF_5S, "≥ 90 %") + " · médiane "
-             + _sec(stats["latence_mediane"]) + ", 90e centile " + _sec(stats["latence_p90"]))  # fmt: skip
-    c.metric("Réponses jugées utiles", _pct(stats["taux_utiles"]), border=True,
-             help=_objectif(stats["taux_utiles"], OBJECTIF_SATISFACTION, "≥ 80 %")
-             + f" · {stats['avis']} avis")  # fmt: skip
-    d.metric("Sessions", stats["sessions"], border=True,
-             help=_objectif(stats["sessions"], OBJECTIF_TESTEURS, "≥ 15 testeurs")
-             + " · une session = un onglet ouvert")  # fmt: skip
+    _tuiles(
+        _tuile("Réponses sourcées", _pct(stats["taux_sourcees"]),
+               _etat(stats["taux_sourcees"], OBJECTIF_SOURCEES, "≥ 90 %")),
+        _tuile("Réponses en 5 s ou moins", _pct(stats["taux_sous_5s"]),
+               _etat(stats["taux_sous_5s"], OBJECTIF_5S, "≥ 90 %"),
+               f"Médiane {_sec(stats['latence_mediane'])} · 90e centile {_sec(stats['latence_p90'])}"),
+        _tuile("Réponses jugées utiles", _pct(stats["taux_utiles"]),
+               _etat(stats["taux_utiles"], OBJECTIF_SATISFACTION, "≥ 80 %"),
+               f"Sur {stats['avis']} avis"),
+        _tuile("Sessions", stats["sessions"],
+               _etat(stats["sessions"], OBJECTIF_TESTEURS, "≥ 15"),
+               "1 session = 1 onglet ouvert"),
+    )  # fmt: skip
 
     st.caption("Activité")
-    e, f, g, h = st.columns(4)
-    e.metric("Questions", stats["questions"], help="Premier mot (médiane) : "
-             + _sec(stats["premier_mot_median"]))  # fmt: skip
-    f.metric(
-        "Refus", stats["refus"], help="Part des questions traitées : " + _pct(stats["taux_refus"])
-    )
-    g.metric("Erreurs du service", stats["erreurs"])
-    h.metric(
-        "Réponses du cache", stats["depuis_cache"] + stats["secours"],
-        help=f"Réponses déjà données, servies sans appeler le modèle (F8), dont {stats['secours']} "
-        "en secours pendant une panne. Exclues des temps de réponse.",
+    premier = stats["premier_mot_median"]
+    _tuiles(
+        _tuile("Questions", stats["questions"],
+               f"Premier mot en {_sec(premier)} (médiane)" if premier is not None else ""),
+        _tuile("Refus", stats["refus"], f"{_pct(stats['taux_refus'])} des questions"),
+        _tuile("Erreurs du service", stats["erreurs"]),
+        _tuile("Réponses du cache", stats["depuis_cache"] + stats["secours"],
+               "Sans appel au modèle"
+               + (f", dont {stats['secours']} en secours" if stats["secours"] else "")),
     )  # fmt: skip
     if len(stats["par_jour"]) > 1:
         # une seule série : une couleur (l'accent), pas de légende ; l'infobulle donne le chiffre
@@ -455,18 +501,16 @@ def _questionnaires_section() -> None:
         st.caption("Aucun questionnaire reçu pour l'instant (page /questionnaire).")
         return
     ind = questionnaire.indicateurs(reponses)
-    a, b, c, d = st.columns(4)
-    a.metric("Testeurs", ind["testeurs"], border=True,
-             help=_objectif(ind["testeurs"], OBJECTIF_TESTEURS, "≥ 15 testeurs")
-             + " · un testeur = un questionnaire envoyé")  # fmt: skip
-    b.metric("Pertinence perçue", _pct(ind["pertinence"]), border=True,
-             help=_objectif(ind["pertinence"], OBJECTIF_SATISFACTION, "≥ 80 %")
-             + " · part des notes 4 ou 5 à la question 5")  # fmt: skip
-    c.metric("Satisfaction", _pct(ind["satisfaction"]), border=True,
-             help=_objectif(ind["satisfaction"], OBJECTIF_SATISFACTION, "≥ 80 %")
-             + " · part des notes 4 ou 5 à la question 14")  # fmt: skip
-    d.metric("Le conseilleraient", _pct(ind["recommandation"]), border=True,
-             help="Part des « Oui » à la question 15")  # fmt: skip
+    _tuiles(
+        _tuile("Testeurs", ind["testeurs"],
+               _etat(ind["testeurs"], OBJECTIF_TESTEURS, "≥ 15")),
+        _tuile("Pertinence perçue", _pct(ind["pertinence"]),
+               _etat(ind["pertinence"], OBJECTIF_SATISFACTION, "≥ 80 %"), "Notes 4 ou 5 (question 5)"),
+        _tuile("Satisfaction", _pct(ind["satisfaction"]),
+               _etat(ind["satisfaction"], OBJECTIF_SATISFACTION, "≥ 80 %"),
+               "Notes 4 ou 5 (question 14)"),
+        _tuile("Le conseilleraient", _pct(ind["recommandation"]), "« Oui » à la question 15"),
+    )  # fmt: skip
     st.caption(
         "Notes 4 ou 5 : compréhension "
         + _pct(ind["comprehension"])
@@ -501,6 +545,7 @@ def _questionnaires_section() -> None:
 
 
 def _tableau_de_bord() -> None:
+    st.html(STYLE_TUILES)
     st.markdown("### Administration")
     _journal_section()
     _cache_section()
@@ -510,10 +555,15 @@ def _tableau_de_bord() -> None:
     st.markdown("#### Documents du corpus (F7)")
     documents = _catalogue()
     themes = {d["theme"] for d in documents if d["theme"]}
-    a, b, c = st.columns(3)
-    a.metric("Documents au catalogue", len(documents))
-    b.metric("Thèmes", len(themes))
-    c.metric("Objectif du cahier des charges", "≥ 100")
+    valides = sum(d["statut"] == "valide" for d in documents)
+    autres = len(documents) - valides
+    _tuiles(
+        _tuile("Documents validés", valides, _etat(valides, 100, "≥ 100")),
+        _tuile("Au catalogue", len(documents),
+               f"{autres} exclus ou à vérifier" if autres else "Tous validés"),
+        _tuile("Thèmes", len(themes), ", ".join(n for t, n in NOMS_THEMES.items() if t in themes)),
+        colonnes=3,
+    )  # fmt: skip
     st.caption("Lecture seule pour l'instant : l'ajout et le retrait passent encore par la ligne "
                "de commande (`rag_assistant.ingestion.pipeline`).")  # fmt: skip
     if documents:

@@ -36,6 +36,16 @@ def test_texte_provisoire_cache_citations_etiquettes_et_mots_convenus(brut, atte
     assert aff.texte_provisoire(brut) == attendu
 
 
+def tuiles(at) -> dict[str, str]:
+    """Libellé -> valeur des tuiles d'indicateurs de la page d'administration."""
+    import html
+    import re
+
+    texte = "".join(m.value for m in at.markdown)
+    return {html.unescape(lib): html.unescape(val) for lib, val in
+            re.findall(r'<div class="l">(.*?)</div><div class="v">(.*?)</div>', texte)}  # fmt: skip
+
+
 def test_sources_en_markdown_avec_lien_et_section():
     md = aff.sources_markdown(
         [{"numero": 1, "titre": "Guide", "organisme": "CNRA", "annee": "2021", "page": 4,
@@ -246,7 +256,7 @@ def test_tableau_de_bord_admin(tmp_path, monkeypatch):
     at.session_state["_journal_test"] = journal
     at.run()
     assert not at.exception
-    valeurs = {m.label: m.value for m in at.metric}
+    valeurs = tuiles(at)
     assert valeurs["Réponses sourcées"] == "100 %" and valeurs["Réponses jugées utiles"] == "100 %"
     assert valeurs["Questions"] == "2" and valeurs["Refus"] == "1" and valeurs["Sessions"] == "2"
     tableau = at.dataframe[2].value  # refus, documents, dernières questions

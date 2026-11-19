@@ -15,6 +15,16 @@ PAGE = "from rag_assistant.app import questionnaire\nquestionnaire.page()"
 ADMIN = "from rag_assistant.app import admin\nadmin.page()"
 
 
+def tuiles(at) -> dict[str, str]:
+    """Libellé -> valeur des tuiles d'indicateurs de la page d'administration."""
+    import html
+    import re
+
+    texte = "".join(m.value for m in at.markdown)
+    return {html.unescape(lib): html.unescape(val) for lib, val in
+            re.findall(r'<div class="l">(.*?)</div><div class="v">(.*?)</div>', texte)}  # fmt: skip
+
+
 def complet(**autres) -> dict:
     """Un questionnaire rempli : le premier choix partout, 4 sur les échelles."""
     reponses = {"q0": "Oui"}
@@ -128,7 +138,7 @@ def test_tableau_de_bord_admin(journal, monkeypatch):
     at.session_state["_journal_test"] = journal
     at.run()
     assert not at.exception
-    valeurs = {m.label: m.value for m in at.metric}
+    valeurs = tuiles(at)
     assert valeurs["Testeurs"] == "2" and valeurs["Pertinence perçue"] == "50 %"
     assert valeurs["Satisfaction"] == "100 %"
 
