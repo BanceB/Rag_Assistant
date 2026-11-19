@@ -104,10 +104,12 @@ def _sec(valeur: float | None) -> str:
     return "—" if valeur is None else f"{valeur:.1f} s".replace(".", ",")
 
 
+# Grands thèmes de la page centrés.
 # Tuiles des indicateurs : une grille compacte (4 par ligne sur ordinateur, 2 sur téléphone),
 # avec l'état de l'objectif écrit sous la valeur plutôt que caché dans une infobulle.
 STYLE_TUILES = """
 <style>
+[data-testid="stMarkdownContainer"] h4{text-align:center;margin-top:.6rem}
 .tuiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:2px 0 16px}
 .tuiles.trois{grid-template-columns:repeat(3,minmax(0,1fr))}
 @media (max-width:900px){.tuiles,.tuiles.trois{grid-template-columns:repeat(2,minmax(0,1fr))}
